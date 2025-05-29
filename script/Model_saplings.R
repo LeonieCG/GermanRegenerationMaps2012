@@ -1,4 +1,4 @@
-# This script calibrates pecies-specific regeneration models and checks model
+# This script calibrates species-specific regeneration models and checks model
 # assumptions
 
 start.script <- Sys.time()
