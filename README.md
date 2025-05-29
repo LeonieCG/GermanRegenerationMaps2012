@@ -14,6 +14,9 @@ The table displays the predictor variables their abbrevation, explanation, unit,
 Lines highlighted in gray are other data sets mentioned in the R-script workflow graph above. For data reference please see preprint (link below).
 
 ## References
+### Preprint
+EcoEvoRxiv: 
+
 ### Map display
 Google Earth Engine: https://easi.users.earthengine.app/view/regeneration-maps
 
@@ -21,5 +24,5 @@ Google Earth Engine: https://easi.users.earthengine.app/view/regeneration-maps
 Dryad:
 
 ### Code repository
-GitHub: https://github.com/LeonieCG/GermanRegenerationMaps2012/tree/d96906c994e455165d89478cdce7481886312871<br />
+GitHub: https://github.com/LeonieCG/GermanRegenerationMaps2012 <br />
 Zenodo: 
