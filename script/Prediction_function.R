@@ -1,6 +1,4 @@
 # These are the functions needed to predict species distribution maps
-# if troubles occur test datasets can be found at /script/zOld/Predict_function_FIX.R
-
 # NOTE: These functions are highly specific and only for bams with families using log link functions
 
 
