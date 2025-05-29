@@ -1,5 +1,5 @@
-# This script is for model selection after blocked cross-validation and to check
-# model assumption
+# This script is to check predictive model performance after blocked cross-validation and to check
+# model assumptions
 
 packages <- c("tidyr", "dplyr","magrittr", "ggplot2", "tidyverse")
 sapply(packages, FUN = library, character.only = T)
