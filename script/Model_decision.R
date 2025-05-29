@@ -1,4 +1,6 @@
-# Model decision analysis
+# This script is for model selection after blocked cross-validation and to check
+# model assumption
+
 packages <- c("tidyr", "dplyr","magrittr", "ggplot2", "tidyverse")
 sapply(packages, FUN = library, character.only = T)
 
