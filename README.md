@@ -6,14 +6,19 @@ Third, we mapped indicators of regeneration quantity and quality, demonstrating 
 
 ## R-script workflow
 <img align="middle" width="1000" src="figure/GermanRegenerationMaps2012_workflow.png"> <br />
-The figure shows the sequence of the script execution as well as the input and output data. Highlighted are the availability status of the datasets on Dryad.
+The figure shows the sequence of the script execution as well as the input and output data. Highlighted is the availability status of the data sets on Dryad. 
+
+## Predictors
+<img align="middle" width="1000" src="figure/Predictors.png"> <br />
+The figure displays the predictor variables their abbrevation, explanation, unit, reference and data availability on Dryad (link below). For Data referene please see preprint (link below).
 
 ## References
-### Manuscript preprint
-
 ### Map display
-https://easi.users.earthengine.app/view/regeneration-maps
+Google Earth Engine: https://easi.users.earthengine.app/view/regeneration-maps
 
 ### Data repository
+Dryad:
 
 ### Code repository
+GitHub: https://github.com/LeonieCG/GermanRegenerationMaps2012/tree/d96906c994e455165d89478cdce7481886312871
+Zenodo: 
