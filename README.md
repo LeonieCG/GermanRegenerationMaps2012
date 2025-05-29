@@ -21,5 +21,5 @@ Google Earth Engine: https://easi.users.earthengine.app/view/regeneration-maps
 Dryad:
 
 ### Code repository
-GitHub: https://github.com/LeonieCG/GermanRegenerationMaps2012/tree/d96906c994e455165d89478cdce7481886312871
+GitHub: https://github.com/LeonieCG/GermanRegenerationMaps2012/tree/d96906c994e455165d89478cdce7481886312871<br />
 Zenodo: 
