@@ -36,6 +36,7 @@ source("script/Model_vars.R") # This selects your response and predictor variabl
 
 # due to licencing, not all environmental predictors could be published with this study 
 # the following is a selection, model outcomes can thereby vary highly from the study!
+resp = "count"
 fixed = c("tPeriodic2020_forcli", "tSeas2020_forcli","tMinColdMonth2020_forcli","tRangeDay2020_forcli","tRangeAn2020_forcli" #T microclimate
           , "tPeriodic2010_chelsa", "tSeas2010_chelsa","tMinColdMonth2010_chelsa","tRangeDay2010_chelsa","tRangeAn2010_chelsa" #T macroclimate
           , "precPeriodic2010_chelsa", "precSeas2010_chelsa" # prec
