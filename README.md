@@ -5,13 +5,13 @@ Second, we evaluated the predictive performance of the regeneration models using
 Third, we mapped indicators of regeneration quantity and quality, demonstrating their potential application for Bavaria.
 
 ## R-script workflow
-<img align="middle" width="1000" src="figure/GermanRegenerationMaps2012_workflow.png"> <br />
+<p align="center"><img width="1000" src="figure/GermanRegenerationMaps2012_workflow.png"> </p> <br />
 The figure shows the sequence of the script execution as well as the input and output data. Highlighted is the availability status of the data sets on Dryad. 
 
 ## Predictors
-<img align="middle" width="850" src="figure/Predictors.png"> <br />
-The figure displays the predictor variables their abbrevation, explanation, unit, reference and data availability on Dryad (link below). 
-Lines highlighted in gray are other data sets mentioned in the graph above. For data reference please see preprint (link below).
+<p align="center"><p style="text-align: center"><img width="250" src="figure/Predictors.png"> </p> <br />
+The table displays the predictor variables their abbrevation, explanation, unit, reference and data availability on Dryad (link below). 
+Lines highlighted in gray are other data sets mentioned in the R-script workflow graph above. For data reference please see preprint (link below).
 
 ## References
 ### Map display
