@@ -1,3 +1,6 @@
+# This script calibrates pecies-specific regeneration models and checks model
+# assumptions
+
 start.script <- Sys.time()
 
 packages <- c("tidyr", "dplyr","magrittr", "terra", "mgcv", "gstat", "DHARMa",
@@ -29,7 +32,22 @@ source("script/Species_select.R")
 source("script/Model_functions.R")  # includes building Model variable table, Model function, Cross validation
 
 ## Choose variables ----------------------------------------------------------
-source("script/Model_vars.R")
+source("script/Model_vars.R") # This selects your response and predictor variables
+
+# due to licencing, not all environmental predictors could be published with this study 
+# the following is a selection, model outcomes can thereby vary highly from the study!
+fixed = c("tPeriodic2020_forcli", "tSeas2020_forcli","tMinColdMonth2020_forcli","tRangeDay2020_forcli","tRangeAn2020_forcli" #T microclimate
+          , "tPeriodic2010_chelsa", "tSeas2010_chelsa","tMinColdMonth2010_chelsa","tRangeDay2010_chelsa","tRangeAn2010_chelsa" #T macroclimate
+          , "precPeriodic2010_chelsa", "precSeas2010_chelsa" # prec
+          , "wwpi_cop" # Water prob index, Anoxy indicator, water bodies and flooded plains
+          , "tcd_cop" #tree cover density
+          , "alt", "northexp", "eastexp" # terrain vars
+          , "wzp12_ba_ha_species" #Basal area of respective old trees
+)
+random = c("yearmonth" # to account for changes within sampling period
+           , "blname" # Bundesland
+)
+spatial = c("x","y")
 
 
 # Start Model ---------------------------------------------------------------
