@@ -1,4 +1,4 @@
-# Graphics and Tables for publication
+# Graphics, tables and summary statistics for publication
 
 # Packages ----------------------------------------------------------------
 packages <- c("dplyr","tidyr","magrittr", "terra", "tidyterra","viridis", "ggplot2", 
