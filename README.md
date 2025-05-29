@@ -5,7 +5,7 @@ Second, we evaluated the predictive performance of the regeneration models using
 Third, we mapped indicators of regeneration quantity and quality, demonstrating their potential application for Bavaria.
 
 ## R-script workflow
-<img align="middle" width="750" src="/figure/GermanRegenerationMaps2012_workflow.png">
+<img align="middle" width="1000" src="figure/GermanRegenerationMaps2012_workflow.png"> <br />
 The figure shows the sequence of the script execution as well as the input and output data. Highlighted are the availability status of the datasets on Dryad.
 
 ## References
