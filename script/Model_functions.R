@@ -1,3 +1,6 @@
+# Functions that are sourced for data set combination, model calibration, blocked
+# cross validation and computation of pseudo-R2
+
 # Model Variables ---------------------------------------------------------------
 modelVariables <- function(species){
   R <- as.data.frame(regeneration$data[regeneration$tax == species])
