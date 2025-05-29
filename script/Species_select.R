@@ -1,3 +1,5 @@
+# This script selects the tree species 
+
 species.vect <- readRDS("data/DE_BWI3_regeneration_species.rds")
 
 spec.omit <- c("DE_BWI.other.abies",
