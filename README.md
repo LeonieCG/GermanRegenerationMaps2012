@@ -17,7 +17,7 @@ The figure shows the sequence of the script execution as well as the input and o
 ## Predictors
 <p align="center"><p style="text-align: center"><img width="250" src="figure/Predictors.png"> </p> <br />
 The table displays the predictor variables their abbrevation, explanation, unit, reference and data availability on Zenodo (link below). 
-Lines highlighted in gray are other data sets mentioned in the R-script workflow graph above. For data reference please see preprint (link below).
+Lines highlighted in gray are other datasets mentioned in the R-script workflow graph above. For full data reference please see preprint (link below).
 
 ## References
 Preprint on EcoEvoRxiv: <br />
