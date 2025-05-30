@@ -619,7 +619,7 @@ b.sprich <-
     scale_fill_manual(
       "Species richness",
       na.translate = FALSE,
-      labels = c("0-2", "3-4", "\u22655"),
+      labels = c("1-2", "3-4", "\u22655"),
       values = c("#9A3F07","#F2AF4AFF","grey90"),
       guide = guide_legend(reverse = TRUE)) +
   theme(legend.title = element_text(size = 8),
