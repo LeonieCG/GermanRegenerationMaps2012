@@ -4,7 +4,7 @@ First, we combined the NFI regeneration data with environmental data to construc
 Second, we evaluated the predictive performance of the regeneration models using 10-fold blocked cross-validation and used the validated models to predict regeneration densities for the forest area of Germany. 
 Third, we mapped indicators of regeneration quantity and quality, demonstrating their potential application for Bavaria.<br />
 
-See additional information in References: <br />
+See additional information in references: <br />
 - for full data references and methods please look up our preprint
 - for related code see GitHub and Zenodo
 - to view and explore the generated regeneration maps online please see Google Earth Engine 
