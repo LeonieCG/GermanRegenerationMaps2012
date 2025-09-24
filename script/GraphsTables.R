@@ -17,7 +17,11 @@ bavaria <- vect("data/DE_Verwaltungsgebiete5000/vg5000_ebenen_1231/VG5000_LAN.sh
   filter(GEN == "Bayern") %>% 
   project(.,dt.f)
 
-# colors
+# Species
+species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
+species.tab <- read.csv("data/DE_BWI3_regeneration_species.csv")
+
+# Colors
 sunset = colorRampPalette(c("#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#C36377FF", "#61599DFF", "#1D457F", "#191F40FF", "black"))
 cult.col = colorRampPalette(c("grey90", "#FCFD8F","#F3CE65","#EB9F3C","#9A3F07"))
 div = colorRampPalette(c("grey90","#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#9A3F07"))
@@ -71,8 +75,7 @@ sapling.map <- function(species.vect=species.vect, source, scale, scale.plot, ma
   }
 }
 
-species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
-species.tab <- read.csv("data/DE_BWI3_regeneration_species.csv")
+
 
 # choosing max.count
 regstack <- rast(paste0("output/Predictions/Regeneration_",species.final[1],".tif")) %>%
@@ -894,4 +897,87 @@ BWI_specdens %>%
   mutate(densmap = ifelse(tax %in% species.final, 1, 0)) %>% # if density map exists 1, if not 0, mean model performance criteria met
   merge(., species.tab, by.x = "tax", by.y = "name.id", all.x = T) %>% # add nice scientific species names
   write.csv(., "output/Graphs/Tab_BWI_reg_summary.csv", row.names=F)
+
+
+## Species specific confidence interval maps ------------------------------
+
+### Confidence interval width and relative width ----------------------------------------------
+library(purrr)
+
+# List of species names
+# Replace with your actual species names
+
+# Function to process each species
+process_species <- function(species) {
+  rast_path <- paste0("output/Predictions/Regeneration_", species, ".tif")
+  r <- rast(rast_path)
+  names(r)[1] <- "mean"   # Rename the main prediction layer
+  
+  # Calculate CI width and relative width
+  r$widthCI <- r$upperCI - r$lowerCI
+  r$relwidthCI <- r$widthCI / r$mean
+  
+    list(widthCI = r$widthCI, relwidthCI = r$relwidthCI)# Return the two layers
+}
+
+# Apply the function to all species
+results <- map(species.final, process_species)
+
+# Combine all widthCI layers into one multilayer raster
+widthCI_stack <- rast(map(results, "widthCI"))
+names(widthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
+
+# Combine all relwiCI layers into one multilayer raster
+relwidthCI_stack <- rast(map(results, "relwidthCI"))
+names(relwidthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
+
+  
+ci.map <- function(dat, species.vect = species.final, cileg, max.count = NULL){
+  for(i in species.vect){
+    print(species)
+   # p <-
+      ggplot()+
+      theme_void()+
+      geom_spatraster(data = dat[species]) +
+      scale_fill_gradientn(
+        cileg,
+        na.value = "transparent",
+        colors = sunset(7),
+        space = "Lab" #,
+        # trans = "log1p",
+        # breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),
+        # labels = scales::comma(c(0,10,100,1000,10000, 100000,1e6,1e7)),
+        # limits = c(0, max.count)
+        )+
+      guides(fill = guide_colourbar(barwidth = 1))+
+      theme(legend.title = element_text(size = 8),
+            legend.text = element_text(size = 7))+
+      geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)+
+      annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
+    
+    assign(paste0("p.ci.",species), p , envir = .GlobalEnv)
+    
+    # save
+    ggsave(plot = p,
+           filename = paste0("output/Graphs/Regeneration_",ci,"_",species,".png"),
+           height = 8, width = 8, units = "cm", dpi = 900,
+           bg = "white",
+           device=grDevices::png)
+  }
+}
+
+ci.map(species.vect = species.final[1], ci ="widthCI", cileg = "CI width")
+
+
+# Plot mean and ci  -------------------------------------------------------
+
+
+# More ideas 
+# - RGB composite map (hard to read)
+# - overlay ci width e.g. opacity when it is very unceartain
+# - spatial statistics to identify clusters of high uncertainty
+# - zonal statistics (per geographic unit)
+# - correlation width covariates
+# - create ci width threshold when not to trust predictions...
+
 
