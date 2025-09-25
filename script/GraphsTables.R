@@ -2,7 +2,7 @@
 
 # Packages ----------------------------------------------------------------
 packages <- c("dplyr","tidyr","magrittr", "terra", "tidyterra","viridis", "ggplot2", 
-              "stringr", "cowplot", "patchwork", "ggExtra")
+              "stringr", "cowplot", "patchwork", "ggExtra", "purrr")
 sapply(packages, FUN = library, character.only = T)
 
 
@@ -901,21 +901,17 @@ BWI_specdens %>%
 
 ## Species specific confidence interval maps ------------------------------
 
-### Confidence interval width and relative width ----------------------------------------------
-library(purrr)
-
-# List of species names
-# Replace with your actual species names
+### CI width and relative width ----------------------------------------------
+# during the prediction process the upper and lower limit of the 95%-confidence interval were computed
 
 # Function to process each species
 process_species <- function(species) {
-  rast_path <- paste0("output/Predictions/Regeneration_", species, ".tif")
-  r <- rast(rast_path)
+  r <- rast(paste0("output/Predictions/Regeneration_", species, ".tif"))
   names(r)[1] <- "mean"   # Rename the main prediction layer
   
   # Calculate CI width and relative width
   r$widthCI <- r$upperCI - r$lowerCI
-  r$relwidthCI <- r$widthCI / r$mean
+  r$relwidthCI <- r$mean/ r$widthCI
   
     list(widthCI = r$widthCI, relwidthCI = r$relwidthCI)# Return the two layers
 }
@@ -923,53 +919,49 @@ process_species <- function(species) {
 # Apply the function to all species
 results <- map(species.final, process_species)
 
-# Combine all widthCI layers into one multilayer raster
+# Combine all widthCI layers
 widthCI_stack <- rast(map(results, "widthCI"))
 names(widthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
 
-# Combine all relwiCI layers into one multilayer raster
+# Combine all relwidthCI layers
 relwidthCI_stack <- rast(map(results, "relwidthCI"))
 names(relwidthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
 
-  
-ci.map <- function(dat, species.vect = species.final, cileg, max.count = NULL){
-  for(i in species.vect){
-    print(species)
-   # p <-
-      ggplot()+
-      theme_void()+
-      geom_spatraster(data = dat[species]) +
-      scale_fill_gradientn(
-        cileg,
-        na.value = "transparent",
-        colors = sunset(7),
-        space = "Lab" #,
-        # trans = "log1p",
-        # breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),
-        # labels = scales::comma(c(0,10,100,1000,10000, 100000,1e6,1e7)),
-        # limits = c(0, max.count)
-        )+
-      guides(fill = guide_colourbar(barwidth = 1))+
-      theme(legend.title = element_text(size = 8),
-            legend.text = element_text(size = 7))+
-      geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)+
-      annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
-    
-    assign(paste0("p.ci.",species), p , envir = .GlobalEnv)
-    
-    # save
-    ggsave(plot = p,
-           filename = paste0("output/Graphs/Regeneration_",ci,"_",species,".png"),
-           height = 8, width = 8, units = "cm", dpi = 900,
-           bg = "white",
-           device=grDevices::png)
-  }
-}
+# plot CI widths
+ggplot() +
+  theme_void() +
+  geom_spatraster(data = widthCI_stack) +
+  facet_wrap(~lyr) +
+  scale_fill_gradientn(
+    "CI width [ha⁻¹]",
+    na.value = "transparent",
+    colors = sunset(7),
+    space = "Lab" ,
+    trans = "log1p",
+    breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),
+    labels = scales::comma(c(0,10,100,1000,10000, 100000,1e6,1e7))) +
+  guides(fill = guide_colourbar(barwidth = 1)) +
+  theme(legend.title = element_text(size = 8),
+        legend.text = element_text(size = 7)) +
+  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
 
-ci.map(species.vect = species.final[1], ci ="widthCI", cileg = "CI width")
-
-
-# Plot mean and ci  -------------------------------------------------------
+# plot relative CI widths
+ggplot() +
+  theme_void() +
+  geom_spatraster(data = relwidthCI_stack) +
+  facet_wrap(~lyr) +
+  scale_fill_gradientn(
+    "Relative CI width [ha⁻¹]",
+    na.value = "transparent",
+    colors = sunset(7),
+    space = "Lab") + # ,
+    # trans = "log1p",
+    # breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),
+    # labels = scales::comma(c(0,10,100,1000,10000, 100000,1e6,1e7))) +
+  guides(fill = guide_colourbar(barwidth = 1)) +
+  theme(legend.title = element_text(size = 8),
+        legend.text = element_text(size = 7)) +
+  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
 
 
 # More ideas 
