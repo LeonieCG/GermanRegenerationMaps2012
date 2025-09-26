@@ -10,7 +10,6 @@ packages <- c("tidyr", "dplyr","magrittr", "terra", "mgcv", "gstat", "DHARMa",
 sapply(packages, FUN = library, character.only = T)
 
 
-
 # Load data ---------------------------------------------------------------
 
 ## Response Variable -------------------------------------------------------
@@ -68,6 +67,7 @@ for(leftout in unique(varimp$Category)){
   
   # create folder structure for saving
   dir.create(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",leftout,"/"))
+  for(species in species.final) {dir.create(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",leftout,"/",species))}
 
 
   # Start Model ---------------------------------------------------------------
@@ -98,7 +98,6 @@ for(leftout in unique(varimp$Category)){
                         CV = "blockcv",
                         blockcv.dr = 300000, # 300000 gives 11 blocks for whole germany
                         blockcv.k = 10)
-      dir.create(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",leftout,"/",species))# create directory
       saveRDS(fit, paste0("output/Fits/Sapling/h50d7_Germany_varimp_",leftout,"/",species,"/",species,"_fit.rds"))# save in directory
     })
   }
