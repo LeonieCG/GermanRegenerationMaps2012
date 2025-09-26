@@ -70,7 +70,9 @@ for(species in species.vect) {
                       select.var = FALSE,
                       bam = TRUE,
                       Data = mv,
-                      CV = FALSE)
+                      CV = "blockcv",
+                      blockcv.dr = 300000, # 300,000 gives 11 blocks!
+                      blockcv.k = 10)
     saveRDS(fit, paste0("output/Fits/Basalarea/wzp12/",species,"/Basalarea_",species,"_fit.rds"))
     })
 }
@@ -96,12 +98,34 @@ for(species in species.vect) {
     df.out <-  data.frame()
 
     # Save Model output in data.frame
-    df.out <- bind_rows(df.out,fit$CV)
-
-## Check mgcv --------------------------------------------------------------
-    # summary(fit)
-    # gam.check(fit)
-
+    df.out <- bind_rows(df.out, fit$CV[c("cv.method", "cv.folds", "cv.sp.range", "cv.set.range", "cv.blocknr")])
+    
+    ## Model validation indicator ----------------------------------------------
+    # MAE
+    df.out$mae.train.mean = mean(fit$CV$mae.train)
+    df.out$mae.train.median = median(fit$CV$mae.train)
+    df.out$mae.train.sd = sd(fit$CV$mae.train)
+    df.out$mae.train.iqr = quantile(fit$CV$mae.train, 0.75) - quantile(fit$CV$mae.train, 0.25)
+    
+    df.out$mae.test.mean = mean(fit$CV$mae.test)
+    df.out$mae.test.median = median(fit$CV$mae.test)
+    df.out$mae.test.sd = sd(fit$CV$mae.test)
+    df.out$mae.test.iqr = quantile(fit$CV$mae.test, 0.75) - quantile(fit$CV$mae.test, 0.25)
+    
+    df.out$mae.relative.mean = mean(fit$CV$mae.test/fit$CV$mae.train)
+    df.out$mae.relative.median = median(fit$CV$mae.test/fit$CV$mae.train)
+    
+    #Cohens pseudo R2
+    df.out$rsq.train.mean = mean(fit$CV$rsq.train)
+    df.out$rsq.train.median = median(fit$CV$rsq.train)
+    df.out$rsq.train.sd = sd(fit$CV$rsq.train)
+    df.out$rsq.train.iqr = quantile(fit$CV$rsq.train, 0.75) - quantile(fit$CV$rsq.train, 0.25)
+    
+    df.out$rsq.test.mean = mean(fit$CV$rsq.test)
+    df.out$rsq.test.median = median(fit$CV$rsq.test)
+    df.out$rsq.test.sd = sd(fit$CV$rsq.test)
+    df.out$rsq.test.iqr = quantile(fit$CV$rsq.test, 0.75) - quantile(fit$CV$rsq.test, 0.25)
+    
 ## Check DHARMa ------------------------------------------------------------
     sims <- simulateResiduals(fit, plot=T) #, exclude = paste0("s(", random, ")")) # for accounting for random effects add: exclude = paste0("s(", random, ")")
     
