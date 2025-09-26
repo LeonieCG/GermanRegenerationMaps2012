@@ -21,7 +21,7 @@ E <- readRDS("data/DE_BWI3_explvars_df.rds") # right one for the project
 regeneration <- readRDS("data/DE_BWI3_regeneration_h50d7.rds") # is needed to built mv (has time in it...)
 
 ## Sapling species -----------------------------------------------------------------
-source("script/Species_select.R")
+species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
 
 ## Source functions --------------------------------------------------------
 source("script/Model_functions.R") # includes building Model variable table, Model function
@@ -31,26 +31,26 @@ source("script/Model_vars.R") # use basic model vars
 
 # due to licencing, not all environmental predictors could be published with this study 
 # the following is a selection, model outcomes can thereby vary highly from the study!
-resp = "wzp12_ba_ha_species"
-fixed = c("tPeriodic2020_forcli", "tSeas2020_forcli","tMinColdMonth2020_forcli","tRangeDay2020_forcli","tRangeAn2020_forcli" #T microclimate
-          , "tPeriodic2010_chelsa", "tSeas2010_chelsa","tMinColdMonth2010_chelsa","tRangeDay2010_chelsa","tRangeAn2010_chelsa" #T macroclimate
-          , "precPeriodic2010_chelsa", "precSeas2010_chelsa" # prec
-          , "wwpi_cop" # Water prob index, Anoxy indicator, water bodies and flooded plains
-          , "tcd_cop" #tree cover density
-          , "alt", "northexp", "eastexp" # terrain vars
-          , "wzp12_ba_ha_species" #Basal area of respective old trees
-)
-random = c("yearmonth" # to account for changes within sampling period
-           , "blname" # Bundesland
-)
-spatial = c("x","y")
-
-fixed <- fixed[! fixed %in% c("wzp12_ba_ha_species")]
+# resp = "wzp12_ba_ha_species"
+# fixed = c("tPeriodic2020_forcli", "tSeas2020_forcli","tMinColdMonth2020_forcli","tRangeDay2020_forcli","tRangeAn2020_forcli" #T microclimate
+#           , "tPeriodic2010_chelsa", "tSeas2010_chelsa","tMinColdMonth2010_chelsa","tRangeDay2010_chelsa","tRangeAn2010_chelsa" #T macroclimate
+#           , "precPeriodic2010_chelsa", "precSeas2010_chelsa" # prec
+#           , "wwpi_cop" # Water prob index, Anoxy indicator, water bodies and flooded plains
+#           , "tcd_cop" #tree cover density
+#           , "alt", "northexp", "eastexp" # terrain vars
+#           , "wzp12_ba_ha_species" #Basal area of respective old trees
+# )
+# random = c("yearmonth" # to account for changes within sampling period
+#            , "blname" # Bundesland
+# )
+# spatial = c("x","y")
+# 
+# fixed <- fixed[! fixed %in% c("wzp12_ba_ha_species")]
 
 # Model ---------------------------------------------------------------
 
 ## Iterate Species ---------------------------------------------------------------
-for(species in species.vect) {
+for(species in species.final) {
   print(species)
 
 ## Built model variables ---------------------------------------------------
@@ -89,7 +89,7 @@ pdf(paste0("output/Fits/Basalarea/wzp12/Basalarea_DHARMaresidual.pdf"), width = 
 par(oma=c(1, 1, 1.5, 0.5),mfrow = c(2,1))
 
 ## Iterate Species ---------------------------------------------------------
-for(species in species.vect) {
+for(species in species.final) {
   print(species)
   try({
     fit  <-  readRDS(paste0("output/Fits/Basalarea/wzp12/",species,"/Basalarea_",species,"_fit.rds"))
