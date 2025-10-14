@@ -14,7 +14,7 @@ sapply(packages, FUN = library, character.only = T)
 #-> check them also visually 
 
 
-# Model performance check ----------------------------------------------------------------
+# Regeneration ------------------------------------------------------------
 ms_reg <- read.csv2("output/Fits/Sapling/h50d7_Germany/Sapling_model_summary.csv") 
 
 ms_reg %<>% mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
@@ -27,7 +27,7 @@ ms_reg_out <- ms_reg %>%
   filter(mae.rule == "failed" | rsq.rule == "failed" | is.na(cv.method))
 
 
-# DHARMa checks p-value and visual ------------------------------------------
+## DHARMa checks p-value and visual ------------------------------------------
 # ms_reg_final %>%
 #   filter(disp.p <= 0.05 | zeroinfl.p <= 0.05 | spatautocorr.p <= 0.05)
 
@@ -65,12 +65,27 @@ ms_reg %>% # before model selection
   filter(spatautocorr.p <= 0.05)
 
 
-# Save ----------------------------------------------------
+## Save ----------------------------------------------------
 saveRDS(ms_reg_final,"output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")
 
 
-# Plot --------------------------------------------------------------------
- ggplot()+
+## Plot --------------------------------------------------------------------
+ggplot()+
+theme_bw()+
+scale_x_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
+scale_y_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
+geom_hline(yintercept = 0) +
+geom_vline(xintercept = 0) +
+geom_vline(xintercept = 0.1) +
+xlab(expression("pseudo-R"["test"]^2)) +
+ylab(expression("pseudo-R"["train"]^2)) +
+geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
+             aes(x = x, y = y), fill = "#B49629", alpha = 0.3) + 
+geom_point(data= ms_reg, aes(x = rsq.test.mean, y = rsq.train.mean, colour = mae_rule )) +
+scale_colour_manual(expression(Delta*"mae"), 
+                    values = c("passed" = "#D36D39", "failed" = "black"))
+
+ggplot()+
   theme_bw()+
   scale_x_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
   scale_y_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
@@ -81,23 +96,19 @@ saveRDS(ms_reg_final,"output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds"
   ylab(expression("pseudo-R"["train"]^2)) +
   geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
                aes(x = x, y = y), fill = "#B49629", alpha = 0.3) + 
-  geom_point(data= ms_reg, aes(x = rsq.test.mean, y = rsq.train.mean, colour = mae_rule )) +
+  geom_point(data= ms_reg, aes(x = rsq.test.median, y = rsq.train.median, colour = mae_rule )) +
   scale_colour_manual(expression(Delta*"mae"), 
                       values = c("passed" = "#D36D39", "failed" = "black"))
 
-  ggplot()+
-    theme_bw()+
-    scale_x_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
-    scale_y_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
-    geom_hline(yintercept = 0) +
-    geom_vline(xintercept = 0) +
-    geom_vline(xintercept = 0.1) +
-    xlab(expression("pseudo-R"["test"]^2)) +
-    ylab(expression("pseudo-R"["train"]^2)) +
-    geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
-                 aes(x = x, y = y), fill = "#B49629", alpha = 0.3) + 
-    geom_point(data= ms_reg, aes(x = rsq.test.median, y = rsq.train.median, colour = mae_rule )) +
-    scale_colour_manual(expression(Delta*"mae"), 
-                        values = c("passed" = "#D36D39", "failed" = "black"))
+
+# Basal area --------------------------------------------------------------
+ms_ba <- read.csv2("output/Fits/Basalarea/wzp12/Basalarea_model_summary.csv") 
+
+ms_ba %<>% mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
+                   rsq.rule = ifelse(rsq.test.median >= 0.1, "passed", "failed"))
+
+ms_ba_final <- ms_reg %>%
+  filter(mae.rule == "passed" & rsq.rule == "passed")
+
 
 
