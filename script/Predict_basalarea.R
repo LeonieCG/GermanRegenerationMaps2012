@@ -53,7 +53,7 @@ for(species in species.final) {
                              BAspecies = NULL,
                              get_dir = NULL,
                              haconvert = FALSE, # converts to hectare
-                             CI = FALSE, # Only use when link function is log
+                             CI = TRUE, # Only use when link function is log
                              cores = 20) # for parallel
     writeRaster(prediction, paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"), overwrite=TRUE)
   }, FALSE)
