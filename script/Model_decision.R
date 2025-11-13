@@ -5,6 +5,9 @@ packages <- c("tidyr", "dplyr","magrittr", "ggplot2", "tidyverse")
 sapply(packages, FUN = library, character.only = T)
 
 
+# Model validation --------------------------------------------------------
+
+
 # Model assumptions
 # DHARMA, there is A problem when:
 # disp.p < 0.05: significant ratio > 1 indicates overdispersion, a significant ratio < 1 underdispersion (?testDispersion)
@@ -14,7 +17,7 @@ sapply(packages, FUN = library, character.only = T)
 #-> check them also visually 
 
 
-# Regeneration ------------------------------------------------------------
+## Regeneration ------------------------------------------------------------
 ms_reg <- read.csv2("output/Fits/Sapling/h50d7_Germany/Sapling_model_summary.csv") 
 
 ms_reg %<>% mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
@@ -27,7 +30,7 @@ ms_reg_out <- ms_reg %>%
   filter(mae.rule == "failed" | rsq.rule == "failed" | is.na(cv.method))
 
 
-## DHARMa checks p-value and visual ------------------------------------------
+### DHARMa checks p-value and visual ------------------------------------------
 # ms_reg_final %>%
 #   filter(disp.p <= 0.05 | zeroinfl.p <= 0.05 | spatautocorr.p <= 0.05)
 
@@ -65,11 +68,11 @@ ms_reg %>% # before model selection
   filter(spatautocorr.p <= 0.05)
 
 
-## Save ----------------------------------------------------
+### Save ----------------------------------------------------
 saveRDS(ms_reg_final,"output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")
 
 
-## Plot --------------------------------------------------------------------
+### Plot --------------------------------------------------------------------
 ggplot()+
 theme_bw()+
 scale_x_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
@@ -101,14 +104,68 @@ ggplot()+
                       values = c("passed" = "#D36D39", "failed" = "black"))
 
 
-# Basal area --------------------------------------------------------------
+## Basal area --------------------------------------------------------------
 ms_ba <- read.csv2("output/Fits/Basalarea/wzp12/Basalarea_model_summary.csv") 
 
 ms_ba %<>% mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
                    rsq.rule = ifelse(rsq.test.median >= 0.1, "passed", "failed"))
 
-ms_ba_final <- ms_reg %>%
-  filter(mae.rule == "passed" & rsq.rule == "passed")
+view(ms_ba)
 
 
 
+# Variable type importance ------------------------------------------------
+varimp <- read.csv2("data/Model_vars_varimp.csv") %>% 
+  filter(!(Category %in% c("Space", "Time")))# leave out these categories!
+
+var <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds") %>% 
+  select(species, mae.relative.median, rsq.test.median) %>% 
+  mutate(varimp = "all")
+# names(var) <- c("species", paste0("all.", names(var)[2:length(var)]))
+
+for(i in unique(varimp$Category)){
+  cat.var <- read.csv2(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",i,"/Sapling_model_summary.csv")) %>% 
+    select(species, mae.relative.median, rsq.test.median) %>% 
+    # mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
+    #      rsq.rule = ifelse(rsq.test.median >= 0.1, "passed", "failed")) %>% 
+    mutate(varimp = i)
+  # names(cat.var) <- c("species", paste0(i,".", names(cat.var)[2:length(cat.var)]))
+  var <- rbind(var, cat.var) #merge(var, cat.var, by= "species")
+  }
+print(var)
+
+rsq = var %>% 
+  select(species, rsq.test.median,varimp) %>% 
+  pivot_wider(names_from = "varimp", values_from = "rsq.test.median")
+
+mae = var %>% 
+  select(species, mae.relative.median, varimp) %>% 
+  pivot_wider(names_from = "varimp", values_from = "mae.relative.median")
+
+
+plotval = function(dat,max,lab){
+  plots <- list()
+  for(i in unique(varimp$Category)){
+    print(i)
+    p <-
+     ggplot()+
+      theme_bw()+
+      scale_x_continuous(expand=c(0, 0), limits=c(0,max)) + #limits=c(-1.1, 1)) +
+      scale_y_continuous(expand=c(0, 0), limits=c(0,max)) + #limits=c(-1.1, 1)) +
+      geom_hline(yintercept = 0) +
+      geom_vline(xintercept = 0) +
+      geom_vline(xintercept = 0.1, color =  "#1D457F") +
+      geom_hline(yintercept = 0.1, color =  "#1D457F") +
+      # xlab(bquote(.(lab)["all"])) +
+      # ylab(bquote(.(lab)[.(i)])) +
+      geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
+                   aes(x = x, y = y), fill = "#B49629", alpha = 0.3) +
+      geom_point(aes(x = dat[["all"]], y = dat[[i]]))
+   #print(p)
+   plots[[i]]<- p
+  }
+  return(plots)
+}
+dat = plotval(dat=rsq, max = 0.7, lab = "Median pseudo-R²")
+patchwork::wrap_plots(plotval(mae, max = 1.5, lab = "Median relative MAE"))
+#!!!! something does not work here!!!! it is plotting the same plot all over!
