@@ -53,7 +53,7 @@ random = c("yearmonth" # year and month of measuring period
 spatial = c("x","y") # xy coordinates of inspire-grid
 
 varimp <- read.csv2("data/Model_vars_varimp.csv") %>% 
-  filter(!(Category %in% c("Space", "Time")))# dont leave out these categories!
+  filter(!(Category %in% c("Space", "Time")))# leave out these categories!
 
 
 # Start leaving one variable category out ---------------------------------
