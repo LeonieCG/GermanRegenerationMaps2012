@@ -232,7 +232,7 @@ blockcv <- function(blockcv.k,
 
 
 # Pseudo R2 by Cohen ------------------------------------------------------
-# # test data
+# test data
 # set.seed(6)
 # dat <- gamSim(1,n=2000,dist="poisson",scale=.1)
 # sel = sample(1:2000, 100)
@@ -290,30 +290,29 @@ get_cohenrsq <- function(fit,
   LL_null.train = # null
     sum(switch(family,
                Negative = dnbinom(train[,resp], size = fit_null$family$getTheta(TRUE), mu = y_mean, log = T),
-               Tweedie = mgcv::ldTweedie(train[,resp], mu = y_mean, p = fit_null$family$getTheta(TRUE), phi = fit_null$deviance/sum(fit_null$prior.weights)))) 
+               Tweedie = mgcv::ldTweedie(train[,resp], mu = y_mean, p = fit_null$family$getTheta(TRUE), phi = summary(fit_null)$dispersion)[,1])) # select first matrix column since this is the log likelyhood
   LL_sat.train = # saturated
     sum(switch(family,
                Negative = dnbinom(train[,resp], size = fit$family$getTheta(TRUE), mu = train[,resp], log = T),
-               Tweedie = mgcv::ldTweedie(train[,resp], mu = train[,resp], p = fit$family$getTheta(TRUE), phi = fit$deviance/sum(fit$prior.weights))))
+               Tweedie = mgcv::ldTweedie(train[,resp], mu = train[,resp], p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1]))
   LL_pred.train = # pred
     sum(switch(family,
                Negative = dnbinom(train[,resp], size = fit$family$getTheta(TRUE), mu = y_pred.train, log = T),
-               Tweedie =  mgcv::ldTweedie(train[,resp], mu = y_pred.train, p = fit$family$getTheta(TRUE), phi = fit$deviance/sum(fit$prior.weights))))
+               Tweedie =  mgcv::ldTweedie(train[,resp], mu = y_pred.train, p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1]))
   
   LL_null.test = # null
     sum(switch(family,
                Negative = dnbinom(test[,resp], size = fit_null$family$getTheta(TRUE), mu = y_mean, log = T),
-               Tweedie = mgcv::ldTweedie(test[,resp], mu = y_mean, p = fit_null$family$getTheta(TRUE), phi = fit_null$deviance/sum(fit_null$prior.weights))))
+               Tweedie = mgcv::ldTweedie(test[,resp], mu = y_mean, p = fit_null$family$getTheta(TRUE), phi = summary(fit_null)$dispersion)[,1]))
   LL_sat.test = # saturated
     sum(switch(family,
                Negative = dnbinom(test[,resp], size = fit$family$getTheta(TRUE), mu = test[,resp], log = T),
-               Tweedie =  mgcv::ldTweedie(test[,resp], mu = test[,resp], p = fit$family$getTheta(TRUE), phi = fit$deviance/sum(fit$prior.weights))))
+               Tweedie =  mgcv::ldTweedie(test[,resp], mu = test[,resp], p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1]))
   LL_pred.test = # pred
     sum(switch(family,
                Negative = dnbinom(test[,resp], size = fit$family$getTheta(TRUE), mu = y_pred.test, log = T),
-               Tweedie =  mgcv::ldTweedie(test[,resp], mu = y_pred.test, p = fit$family$getTheta(TRUE), phi = fit$deviance/sum(fit$prior.weights))))
+               Tweedie =  mgcv::ldTweedie(test[,resp], mu = y_pred.test, p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1]))
 
-  
   # Deviance
   dev_pred.train = 2 * (LL_sat.train - LL_pred.train)
   dev_null.train = 2 * (LL_sat.train - LL_null.train)
