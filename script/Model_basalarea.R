@@ -21,9 +21,9 @@ E <- readRDS("data/DE_BWI3_explvars_df.rds") # right one for the project
 regeneration <- readRDS("data/DE_BWI3_regeneration_h50d7.rds") # is needed to built mv (has time in it...)
 
 ## Sapling species -----------------------------------------------------------------
-species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
+source("script/Species_select.R")
 
-for (i in species.final) {dir.create(paste0("output/Fits/Basalarea/wzp12_interpol/",i))} # creates folder structure
+for (i in species.vect) {dir.create(paste0("output/Fits/Basalarea/wzp12_interpol/",i))} # creates folder structure
 
 ## Source functions --------------------------------------------------------
 source("script/Model_functions.R") # includes building Model variable table, Model function
@@ -32,7 +32,7 @@ source("script/Model_functions.R") # includes building Model variable table, Mod
 # Model ---------------------------------------------------------------
 
 ## Iterate Species ---------------------------------------------------------------
-for(species in species.final) {
+for(species in species.vect) {
   print(species)
 
 ## Built model variables ---------------------------------------------------
@@ -58,8 +58,6 @@ for(species in species.final) {
     print(paste("Model took", Sys.time() - start.model, units(Sys.time()-start.model)))
     
     attr(fit, "species") <- attr(Data, "species")
-    print(paste("Model + CV took", Sys.time() - start.model, units(Sys.time()-start.model)))
-    
     saveRDS(fit, paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.rds"))
     })
 }
@@ -77,7 +75,7 @@ pdf(paste0("output/Fits/Basalarea/wzp12_interpol/Basalarea_DHARMaresidual.pdf"),
 par(oma=c(1, 1, 1.5, 0.5),mfrow = c(2,1))
 
 ## Iterate Species ---------------------------------------------------------
-for(species in species.final) {
+for(species in species.vect) {
   print(species)
   try({
     fit  <-  readRDS(paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.rds"))
