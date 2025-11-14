@@ -28,26 +28,6 @@ for (i in species.final) {dir.create(paste0("output/Fits/Basalarea/wzp12_interpo
 ## Source functions --------------------------------------------------------
 source("script/Model_functions.R") # includes building Model variable table, Model function
 
-## Choose variables --------------------------------------------------------
-#source("script/Model_vars.R") # use basic model vars
-
-# due to licencing, not all environmental predictors could be published with this study 
-# the following is a selection, model outcomes can thereby vary highly from the study!
-# fixed = c("tPeriodic2020_forcli", "tSeas2020_forcli","tMinColdMonth2020_forcli","tRangeDay2020_forcli","tRangeAn2020_forcli" #T microclimate
-#           , "tPeriodic2010_chelsa", "tSeas2010_chelsa","tMinColdMonth2010_chelsa","tRangeDay2010_chelsa","tRangeAn2010_chelsa" #T macroclimate
-#           , "precPeriodic2010_chelsa", "precSeas2010_chelsa" # prec
-#           , "wwpi_cop" # Water prob index, Anoxy indicator, water bodies and flooded plains
-#           , "tcd_cop" #tree cover density
-#           , "alt", "northexp", "eastexp" # terrain vars
-#           , "wzp12_ba_ha_species" #Basal area of respective old trees
-# )
-# random = c("yearmonth" # to account for changes within sampling period
-#            , "blname" # Bundesland
-# )
-# spatial = c("x","y")
-
-# resp = "wzp12_ba_ha_species"
-# fixed <- fixed[! fixed %in% c("wzp12_ba_ha_species")]
 
 # Model ---------------------------------------------------------------
 
@@ -77,19 +57,6 @@ for(species in species.final) {
     
     print(paste("Model took", Sys.time() - start.model, units(Sys.time()-start.model)))
     
-    # Cross validation
-    fit$CV <- blockcv(blockcv.k = 10,
-                      blockcv.dr = 300000,
-                      spatial = c("x","y"),
-                      select.var = FALSE,
-                      Data = Data,
-                      form_all = form_all,
-                      fam = tw(),
-                      exclude = NULL,
-                      resp = "wzp12_ba_ha_species",
-                      bam = TRUE)
-    
-    
     attr(fit, "species") <- attr(Data, "species")
     print(paste("Model + CV took", Sys.time() - start.model, units(Sys.time()-start.model)))
     
@@ -114,40 +81,11 @@ for(species in species.final) {
   print(species)
   try({
     fit  <-  readRDS(paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.rds"))
-summary(fit)
+
     # set up output chart
     df.out <-  data.frame()
 
-    # Save Model output in data.frame
-    df.out <- bind_rows(df.out, fit$CV[c("cv.method", "cv.folds", "cv.sp.range", "cv.set.range", "cv.blocknr")])
-    
-    ## Model validation indicator ----------------------------------------------
-    # MAE
-    df.out$mae.train.mean = mean(fit$CV$mae.train)
-    df.out$mae.train.median = median(fit$CV$mae.train)
-    df.out$mae.train.sd = sd(fit$CV$mae.train)
-    df.out$mae.train.iqr = quantile(fit$CV$mae.train, 0.75) - quantile(fit$CV$mae.train, 0.25)
-    
-    df.out$mae.test.mean = mean(fit$CV$mae.test)
-    df.out$mae.test.median = median(fit$CV$mae.test)
-    df.out$mae.test.sd = sd(fit$CV$mae.test)
-    df.out$mae.test.iqr = quantile(fit$CV$mae.test, 0.75) - quantile(fit$CV$mae.test, 0.25)
-    
-    df.out$mae.relative.mean = mean(fit$CV$mae.test/fit$CV$mae.train)
-    df.out$mae.relative.median = median(fit$CV$mae.test/fit$CV$mae.train)
-    
-    #Cohens pseudo R2
-    df.out$rsq.train.mean = mean(fit$CV$rsq.train)
-    df.out$rsq.train.median = median(fit$CV$rsq.train)
-    df.out$rsq.train.sd = sd(fit$CV$rsq.train)
-    df.out$rsq.train.iqr = quantile(fit$CV$rsq.train, 0.75) - quantile(fit$CV$rsq.train, 0.25)
-    
-    df.out$rsq.test.mean = mean(fit$CV$rsq.test)
-    df.out$rsq.test.median = median(fit$CV$rsq.test)
-    df.out$rsq.test.sd = sd(fit$CV$rsq.test)
-    df.out$rsq.test.iqr = quantile(fit$CV$rsq.test, 0.75) - quantile(fit$CV$rsq.test, 0.25)
-    
-## Check DHARMa ------------------------------------------------------------
+### Check DHARMa ------------------------------------------------------------
     sims <- simulateResiduals(fit, plot=T) #, exclude = paste0("s(", random, ")")) # for accounting for random effects add: exclude = paste0("s(", random, ")")
     
     mtext(paste0(species), cex = 1.5, outer = T, font = 3, side = 3, line = 0, adj = 1) # for plotting the species name
