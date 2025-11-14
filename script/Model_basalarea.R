@@ -23,11 +23,13 @@ regeneration <- readRDS("data/DE_BWI3_regeneration_h50d7.rds") # is needed to bu
 ## Sapling species -----------------------------------------------------------------
 species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
 
+for (i in species.final) {dir.create(paste0("output/Fits/Basalarea/wzp12_interpol/",i))} # creates folder structure
+
 ## Source functions --------------------------------------------------------
 source("script/Model_functions.R") # includes building Model variable table, Model function
 
 ## Choose variables --------------------------------------------------------
-source("script/Model_vars.R") # use basic model vars
+#source("script/Model_vars.R") # use basic model vars
 
 # due to licencing, not all environmental predictors could be published with this study 
 # the following is a selection, model outcomes can thereby vary highly from the study!
@@ -44,8 +46,8 @@ source("script/Model_vars.R") # use basic model vars
 # )
 # spatial = c("x","y")
 
-resp = "wzp12_ba_ha_species"
-fixed <- fixed[! fixed %in% c("wzp12_ba_ha_species")]
+# resp = "wzp12_ba_ha_species"
+# fixed <- fixed[! fixed %in% c("wzp12_ba_ha_species")]
 
 # Model ---------------------------------------------------------------
 
@@ -55,27 +57,46 @@ for(species in species.final) {
 
 ## Built model variables ---------------------------------------------------
   mv <- modelVariables(species = species)
+  
+  Data <- mv %>% 
+    select(wzp12_ba_ha_species, x, y) %>% 
+    drop_na()
+  
 
 ## Run model ---------------------------------------------------------------
   try({
-    fit <-  model.fit(resp = resp,
-                      fixed = fixed,
-                      random = random,
-                      spatial = spatial,
-                      exclude = "yearmonth",
-                      fam = tw(), #tw() -> tweedie
-                      s.k = 10,
-                      te.k= "c(25,50)",
-                      ste.bs = "cs",
+    start.model <- Sys.time()
+    
+    form_all <- as.formula("wzp12_ba_ha_species ~ s(x, y, bs = 'tp', k = 200)")
+    print(form_all)
+    
+    fit <- bam(formula = form_all, family = tw(), data = Data
+               , select = FALSE
+               , method = "fREML" 
+               , discrete=TRUE, nthreads=10) # speeds up calculation
+    
+    print(paste("Model took", Sys.time() - start.model, units(Sys.time()-start.model)))
+    
+    # Cross validation
+    fit$CV <- blockcv(blockcv.k = 10,
+                      blockcv.dr = 300000,
+                      spatial = c("x","y"),
                       select.var = FALSE,
-                      bam = TRUE,
-                      Data = mv,
-                      CV = "blockcv",
-                      blockcv.dr = 300000, # 300,000 gives 11 blocks!
-                      blockcv.k = 10)
-    saveRDS(fit, paste0("output/Fits/Basalarea/wzp12/",species,"/Basalarea_",species,"_fit.rds"))
+                      Data = Data,
+                      form_all = form_all,
+                      fam = tw(),
+                      exclude = NULL,
+                      resp = "wzp12_ba_ha_species",
+                      bam = TRUE)
+    
+    
+    attr(fit, "species") <- attr(Data, "species")
+    print(paste("Model + CV took", Sys.time() - start.model, units(Sys.time()-start.model)))
+    
+    saveRDS(fit, paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.rds"))
     })
 }
+
 
 
 # Model checks-------------------------------------------------------------
@@ -85,15 +106,15 @@ for(species in species.final) {
 df.allsp <- data.frame()
 
 # Save Model Summary in pdf
-pdf(paste0("output/Fits/Basalarea/wzp12/Basalarea_DHARMaresidual.pdf"), width = 10, height = 10) # all graphs will be printed here
+pdf(paste0("output/Fits/Basalarea/wzp12_interpol/Basalarea_DHARMaresidual.pdf"), width = 10, height = 10) # all graphs will be printed here
 par(oma=c(1, 1, 1.5, 0.5),mfrow = c(2,1))
 
 ## Iterate Species ---------------------------------------------------------
 for(species in species.final) {
   print(species)
   try({
-    fit  <-  readRDS(paste0("output/Fits/Basalarea/wzp12/",species,"/Basalarea_",species,"_fit.rds"))
-
+    fit  <-  readRDS(paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.rds"))
+summary(fit)
     # set up output chart
     df.out <-  data.frame()
 
@@ -150,7 +171,7 @@ for(species in species.final) {
     # Need for recalculation of residuals via clusterid.
 
     Data_group <- modelVariables(species = species) %>%
-      select(all_of(c("clusterid", resp, fixed, random, spatial))) %>%
+      select(all_of(c("clusterid", "wzp12_ba_ha_species","x","y"))) %>%
       drop_na() %>% # creates dataset with all important variables and deletes NAs
       group_by(clusterid) %>%
       arrange(x,y) %>%
@@ -169,20 +190,20 @@ for(species in species.final) {
 
 ## Data stats --------------------------------------------------------------
     Data <- modelVariables(species = species) %>%
-      select(all_of(c(resp, fixed, random, spatial))) %>%
+      select("wzp12_ba_ha_species","x","y") %>%
       drop_na()
 
     # How many plots are left when Nas dropped?
     df.out[1, "data.n"] <- dim(Data)[1]
 
     # How many plots are containing zeros?
-    df.out[1, "data.resp.n0"] <- Data %>% select(all_of(resp)) %>% summarise(sum(.==0))
+    df.out[1, "data.resp.n0"] <- Data %>% select("wzp12_ba_ha_species") %>% summarise(sum(.==0))
 
 
 ## Save outputs -------------------------------------------------------------
     #df.out
     df.out[1,"species"] <- species
-    write.csv(df.out, paste0("output/Fits/Basalarea/wzp12/",species,"/Basalarea_",species,"_fit.csv"), row.names = F)
+    write.csv(df.out, paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.csv"), row.names = F)
 
     # save in all species df
     df.allsp <- bind_rows(df.allsp, df.out[1,])
@@ -191,7 +212,7 @@ for(species in species.final) {
 
 ## Save summary over all species -------------------------------------------
 # Save df
-write.csv2(df.allsp, "output/Fits/Basalarea/wzp12/Basalarea_model_summary.csv", row.names = FALSE)
+write.csv2(df.allsp, "output/Fits/Basalarea/wzp12_interpol/Basalarea_model_summary.csv", row.names = FALSE)
 
 
 #close pdf
