@@ -973,3 +973,65 @@ ggplot() +
 # - create ci width threshold when not to trust predictions...
 
 
+## Basal area maps ---------------------------------------------------------
+# Visualising predicted species basal area distribution Maps
+sunset = colorRampPalette(c("#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#C36377FF", "#61599DFF", "#1D457F", "#191F40FF", "black"))
+
+# choosing max.count
+regstack <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species.final[1],".tif")) %>%
+  select(paste0(species.final[1]))
+
+for (i in 2:length(species.final)){
+  stackadd <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species.final[i],".tif")) %>%
+    select(paste0(species.final[i]))
+  regstack <- c(regstack, stackadd)
+  rm(stackadd)
+}
+
+global(regstack, "max",na.rm=T)
+
+# 99% Quantile
+quantile(terra::values(regstack), 0.99, na.rm = TRUE)# of all regeneration maps
+
+# Plot
+ba_plots = list()
+
+for(species in sort(species.final)){
+  print(species)
+
+  pred <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species.final,".tif")) %>% 
+    rename(wzp12_ba_ha_species = paste0(species)) %>% 
+    select(wzp12_ba_ha_species)
+
+  p <-
+    ggplot()+
+    theme_void()+
+    geom_spatraster(data = pred) +
+    scale_fill_gradientn(
+      "Basal area [m² ha\u207B\u00B9]",
+      na.value = "transparent",
+      colors = sunset(7),
+      space = "Lab",
+      trans = "log1p",
+      breaks = c(0,1,10,100),
+      labels = scales::comma(c(0,1,10,100)),
+      limits = c(0, 135))+
+    guides(fill = guide_colourbar(barwidth = 1))+
+    theme(legend.title = element_text(size = 8),
+          legend.text = element_text(size = 7))+
+    geom_spatvector(data = germany , fill = "transparent", colour = "black", linewidth = 0.1)+
+    annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
+  ba_plots[[species]] <- p
+
+}
+
+patchwork::wrap_plots(ba_plots, ncol = 5, nrow = 5, guides = 'collect')
+
+ggsave(filename = "output/Graphs/Basalarea_Germany.png",
+       height = 28, width = 20, units = "cm", dpi = 900,
+       bg = "white",
+       device=grDevices::png)
+
+
+
+  
