@@ -30,6 +30,24 @@ modelVariables <- function(species){
 
 
 # Model function ----------------------------------------------------------
+# # For bug fixing:
+# resp = resp
+# fixed = fixed
+# fixedfact = NULL
+# random = random
+# spatial = spatial
+# offset = NULL
+# exclude = "yearmonth"
+# fam = nb
+# s.k = 10
+# te.k= "c(25,50)"
+# ste.bs = "cs" # is faster than ts
+# select.var = FALSE
+# bam = TRUE
+# Data = mv
+# CV = "blockcv"
+# blockcv.dr = 300000 # 300000 gives 11 blocks for whole germany
+# blockcv.k = 10
 
 model.fit <- function(resp, 
                       fixed = NULL,
@@ -55,7 +73,7 @@ model.fit <- function(resp,
   
   # select needed columns
   Data %<>% 
-    select(all_of(c(resp, fixed, fixedfact, random, coordinates))) %>% 
+    select(all_of(c(resp, fixed, fixedfact, random, coordinates,"plotobsid", "clusterid"))) %>% 
     drop_na()
   
   # built formula parts and whole formula
@@ -108,9 +126,11 @@ model.fit <- function(resp,
 
 
 # Blocked cross validation ------------------------------------------------
-
 packages <- c("modelr", "sf","blockCV", "automap") 
 sapply(packages, FUN = library, character.only = T)
+
+# #for bug fixing:
+# i = 1
 
 blockcv <- function(blockcv.k,
                     blockcv.dr = NULL,
@@ -203,9 +223,27 @@ blockcv <- function(blockcv.k,
                                    discrete = FALSE)# predict.bam specific
     } 
     
+    
+    # Validation based on cluster means
+    train.res <- 
+      train %>% 
+      select(all_of (resp, clusterid)) %>%
+      mutate(clusterid = as.factor(clusterid)) %>% 
+      mutate(fitted = fit.cv$fitted.values) %>% 
+      group_by(clusterid) %>% 
+      summarise(across(c(resp, fitted), mean, na.rm = TRUE))
+    
+    test.res <- test %>% 
+      select(all_of(resp, clusterid)) %>% 
+      mutate(clusterid = as.factor(clusterid)) %>% 
+      mutate(prediction = prediction.cv) %>% 
+      group_by(clusterid) %>% 
+      summarise(across(c(resp, prediction), mean, na.rm = TRUE))
+    
+
     # MAE
-    mae.train[i] <- mean(abs(train[, resp] - fit.cv$fitted.values), na.rm = T)
-    mae.test[i] <- mean(abs(test[, resp] - prediction.cv), na.rm = T)
+    mae.train[i] <- colMeans(abs(train.res[,resp] - train.res[,"fitted"]), na.rm = T)
+    mae.test[i] <- colMeans(abs(test.res[, resp] - test.res[,"prediction"]), na.rm = T)
     
     #R-Squared
     rsq = get_cohenrsq(fit = fit.cv, fit_null = fit.null, train = train, test = test, resp = resp,  exclude = exclude)
@@ -232,7 +270,7 @@ blockcv <- function(blockcv.k,
 
 
 # Pseudo R2 by Cohen ------------------------------------------------------
-# test data
+# #test data:
 # set.seed(6)
 # dat <- gamSim(1,n=2000,dist="poisson",scale=.1)
 # sel = sample(1:2000, 100)
@@ -259,59 +297,85 @@ get_cohenrsq <- function(fit,
   if(is.null(family)|!family %in% c("Negative", "Tweedie")) stop(paste(family, "family not supported"))
   if(!model_type %in% "bam") stop(paste(modeltype, "class not supported"))
   
+  # Cluster means
+  train.clust <- train %>% 
+    select(clusterid, resp) %>% 
+    group_by(clusterid) %>% 
+    summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
+    as.data.frame()
+  
+  test.clust <- test %>% 
+    group_by(clusterid) %>% 
+    summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
+    as.data.frame()
+    
   
   # Get mean
+  # since all values are the mean no cluster wise mean needs to be built here
   y_mean <- mean(predict.bam(fit_null, 
-                            newdata = train[,!names(train) %in% exclude],# don't provide data that is excluded
-                            type = "response", 
-                            exclude = paste0("s(", exclude, ")"),
-                            newdata.guaranteed = TRUE, #due to exclude
-                            na.rm = TRUE,
-                            discrete = FALSE)) # predict.bam specific
-  
-  # Predicted response
-  y_pred.train <- predict.bam(fit, 
                              newdata = train[,!names(train) %in% exclude],# don't provide data that is excluded
                              type = "response", 
                              exclude = paste0("s(", exclude, ")"),
                              newdata.guaranteed = TRUE, #due to exclude
                              na.rm = TRUE,
-                             discrete = FALSE)
+                             discrete = FALSE)) 
   
-  y_pred.test <- predict.bam(fit, 
-                            newdata = test[,!names(test) %in% exclude],# don't provide data that is excluded
-                            type = "response", 
-                            exclude = paste0("s(", exclude, ")"),
-                            newdata.guaranteed = TRUE, #due to exclude
-                            na.rm = TRUE,
-                            discrete = FALSE)
+  # Predicted response
+  y_pred.train <- train %>%
+    mutate(predtrain = predict.bam(fit, 
+                             newdata = train[,!names(train) %in% exclude],# don't provide data that is excluded
+                             type = "response", 
+                             exclude = paste0("s(", exclude, ")"),
+                             newdata.guaranteed = TRUE, #due to exclude
+                             na.rm = TRUE,
+                             discrete = FALSE)) %>% 
+    group_by(clusterid) %>% 
+    summarise(predtrain = mean(predtrain)) %>% 
+    pull(predtrain) 
+  
+  y_pred.test <- test %>% 
+    mutate(predtest = predict.bam(fit, 
+                                  newdata = test[,!names(test) %in% exclude],# don't provide data that is excluded
+                                  type = "response", 
+                                  exclude = paste0("s(", exclude, ")"),
+                                  newdata.guaranteed = TRUE, #due to exclude
+                                  na.rm = TRUE,
+                                  discrete = FALSE)) %>% 
+    group_by(clusterid) %>% 
+    summarise(predtest = mean(predtest)) %>% 
+    pull(predtest)
+    
   
   # Log-Likelihood
   LL_null.train = # null
     sum(switch(family,
-               Negative = dnbinom(train[,resp], size = fit_null$family$getTheta(TRUE), mu = y_mean, log = T),
-               Tweedie = mgcv::ldTweedie(train[,resp], mu = y_mean, p = fit_null$family$getTheta(TRUE), phi = summary(fit_null)$dispersion)[,1])) # select first matrix column since this is the log likelyhood
+               Negative = dnbinom(round(train.clust[,resp]), size = fit_null$family$getTheta(TRUE), mu = y_mean, log = T), # round here since integers are needed
+               Tweedie = mgcv::ldTweedie(train.clust[,resp], mu = y_mean, p = fit_null$family$getTheta(TRUE), phi = summary(fit_null)$dispersion)[,1]))
+
   LL_sat.train = # saturated
     sum(switch(family,
-               Negative = dnbinom(train[,resp], size = fit$family$getTheta(TRUE), mu = train[,resp], log = T),
-               Tweedie = mgcv::ldTweedie(train[,resp], mu = train[,resp], p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1]))
+               Negative = dnbinom(round(train.clust[,resp]), size = fit$family$getTheta(TRUE), mu = round(train.clust[,resp]), log = T),# round here since integers are needed
+               Tweedie = mgcv::ldTweedie(train.clust[,resp], mu = train.clust[,resp], p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1])) 
+  
   LL_pred.train = # pred
     sum(switch(family,
-               Negative = dnbinom(train[,resp], size = fit$family$getTheta(TRUE), mu = y_pred.train, log = T),
-               Tweedie =  mgcv::ldTweedie(train[,resp], mu = y_pred.train, p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1]))
+               Negative = dnbinom(round(train.clust[,resp]), size = fit$family$getTheta(TRUE), mu = y_pred.train, log = T),# round here since integers are needed
+               Tweedie =  mgcv::ldTweedie(train.clust[,resp], mu = y_pred.train, p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1])) 
   
   LL_null.test = # null
     sum(switch(family,
-               Negative = dnbinom(test[,resp], size = fit_null$family$getTheta(TRUE), mu = y_mean, log = T),
-               Tweedie = mgcv::ldTweedie(test[,resp], mu = y_mean, p = fit_null$family$getTheta(TRUE), phi = summary(fit_null)$dispersion)[,1]))
+               Negative = dnbinom(round(test.clust[,resp]), size = fit_null$family$getTheta(TRUE), mu = y_mean, log = T),# round here since integers are needed
+               Tweedie = mgcv::ldTweedie(test.clust[,resp], mu = y_mean, p = fit_null$family$getTheta(TRUE), phi = summary(fit_null)$dispersion)[,1]))
+  
   LL_sat.test = # saturated
     sum(switch(family,
-               Negative = dnbinom(test[,resp], size = fit$family$getTheta(TRUE), mu = test[,resp], log = T),
-               Tweedie =  mgcv::ldTweedie(test[,resp], mu = test[,resp], p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1]))
+               Negative = dnbinom(round(test.clust[,resp]), size = fit$family$getTheta(TRUE), mu = round(test.clust[,resp]), log = T),# round here since integers are needed
+               Tweedie =  mgcv::ldTweedie(test.clust[,resp], mu = test.clust[,resp], p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1])) 
+  
   LL_pred.test = # pred
     sum(switch(family,
-               Negative = dnbinom(test[,resp], size = fit$family$getTheta(TRUE), mu = y_pred.test, log = T),
-               Tweedie =  mgcv::ldTweedie(test[,resp], mu = y_pred.test, p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1]))
+               Negative = dnbinom(round(test.clust[,resp]), size = fit$family$getTheta(TRUE), mu = y_pred.test, log = T),# round here since integers are needed
+               Tweedie =  mgcv::ldTweedie(test.clust[,resp], mu = y_pred.test, p = fit$family$getTheta(TRUE), phi = summary(fit)$dispersion)[,1])) 
 
   # Deviance
   dev_pred.train = 2 * (LL_sat.train - LL_pred.train)
