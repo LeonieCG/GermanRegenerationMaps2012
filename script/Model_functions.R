@@ -30,7 +30,7 @@ modelVariables <- function(species){
 
 
 # Model function ----------------------------------------------------------
-# # For bug fixing:
+# For bug fixing:
 # resp = resp
 # fixed = fixed
 # fixedfact = NULL
@@ -40,8 +40,10 @@ modelVariables <- function(species){
 # exclude = "yearmonth"
 # fam = nb
 # s.k = 10
-# te.k= "c(25,50)"
-# ste.bs = "cs" # is faster than ts
+# s.bs = "cs" # is faster than ts
+# spat.which = "tensor"
+# spat.k= spat.k= "c(25,50)"
+# spat.bs = "cs"
 # select.var = FALSE
 # bam = TRUE
 # Data = mv
@@ -57,8 +59,10 @@ model.fit <- function(resp,
                       offset = NULL,
                       exclude = NULL,
                       s.k = -1 , # Default s()
-                      te.k = NA, # Default te()
-                      ste.bs = "tp",
+                      s.bs = "tp",
+                      spat.which = NULL, # "spline" or "tensor" 
+                      spat.k = NA,
+                      spat.bs = "tp", 
                       select.var = FALSE,
                       fam,
                       bam = FALSE,
@@ -73,20 +77,22 @@ model.fit <- function(resp,
   
   # select needed columns
   Data %<>% 
-    select(all_of(c(resp, fixed, fixedfact, random, coordinates,"plotobsid", "clusterid"))) %>% 
+    select(all_of(c(resp, fixed, fixedfact, random, coordinates, "plotid", "clusterid"))) %>% 
     drop_na()
   
   # built formula parts and whole formula
   form_resp = ifelse(length(resp) >=2, paste0("cbind(", paste(resp, collapse = ","), ")"), paste0(resp))
-  form_fixed <-  ifelse(is.null(fixed) , paste0("1"), paste(paste0("s(", fixed, ", bs= '", ste.bs, "', k = ", s.k,")"), collapse = " + "))
+  form_fixed <-  ifelse(is.null(fixed) , paste0("1"), paste(paste0("s(", fixed, ", bs= '", s.bs, "', k = ", s.k,")"), collapse = " + "))
   form_fixedfact  <- ifelse(is.null(fixedfact) , paste0(""), paste(paste0("+",fixedfact), collapse = " "))
   form_random <- ifelse(is.null(random) , paste0(""), paste(paste0("+ s(",random, ", bs='re')"), collapse = " "))
-  form_spatial <- ifelse(is.null(spatial) , paste0(""), paste0("+ te(", paste0(spatial, collapse = ","), ", bs= '", ste.bs, "',  k = ", te.k,")"))
+  form_spatial <- switch(spat.which,
+                         spline = ifelse(is.null(spatial) , paste0(""), paste0("+ s(", paste0(spatial, collapse = ","), ", bs= '", spat.bs, "', k = ", spat.k,")")),# round here since integers are needed
+                         tensor =  ifelse(is.null(spatial) , paste0(""), paste0("+ te(", paste0(spatial, collapse = ","), ", bs= '", spat.bs, "',  k = ", spat.k,")")))
   form_offset <- ifelse(is.null(offset) , paste0(""), paste(paste0("+ offset(log(",offset, "))"), collapse = " "))
   
   form_all <- as.formula(paste(form_resp," ~ ",form_fixed, form_fixedfact, form_random, form_spatial, form_offset))
   print(form_all)
-  
+
   # Bam or gam
   if(bam == FALSE){#gam
     fit <- gam(formula = form_all, family = fam, data = Data
@@ -227,14 +233,14 @@ blockcv <- function(blockcv.k,
     # Validation based on cluster means
     train.res <- 
       train %>% 
-      select(all_of (resp, clusterid)) %>%
+      select(c(resp, clusterid)) %>%
       mutate(clusterid = as.factor(clusterid)) %>% 
       mutate(fitted = fit.cv$fitted.values) %>% 
       group_by(clusterid) %>% 
       summarise(across(c(resp, fitted), mean, na.rm = TRUE))
     
     test.res <- test %>% 
-      select(all_of(resp, clusterid)) %>% 
+      select(c(resp, clusterid)) %>% 
       mutate(clusterid = as.factor(clusterid)) %>% 
       mutate(prediction = prediction.cv) %>% 
       group_by(clusterid) %>% 
@@ -251,7 +257,7 @@ blockcv <- function(blockcv.k,
     rsq.train[i] <- rsq$cohenrsq.train
     rsq.test[i] <- rsq$cohenrsq.test
     }
-  
+  head(train)
   
   # Save CV output with model information
   CV <- list(cv.method = "blocked cross validation", 
@@ -299,12 +305,13 @@ get_cohenrsq <- function(fit,
   
   # Cluster means
   train.clust <- train %>% 
-    select(clusterid, resp) %>% 
+    select(c(clusterid, resp)) %>% 
     group_by(clusterid) %>% 
     summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
     as.data.frame()
   
   test.clust <- test %>% 
+    select(c(clusterid, resp)) %>% 
     group_by(clusterid) %>% 
     summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
     as.data.frame()
