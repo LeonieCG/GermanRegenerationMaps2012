@@ -23,7 +23,7 @@ regeneration <- readRDS("data/DE_BWI3_regeneration_h50d7.rds") # is needed to bu
 ## Sapling species -----------------------------------------------------------------
 source("script/Species_select.R")
 
-for (i in species.vect) {dir.create(paste0("output/Fits/Basalarea/wzp12_interpol/",i))} # creates folder structure
+# for (i in species.vect) {dir.create(paste0("output/Fits/Basalarea/wzp12/",i))} # creates folder structure
 
 ## Source functions --------------------------------------------------------
 source("script/Model_functions.R") # includes building Model variable table, Model function
@@ -58,7 +58,7 @@ for(species in species.vect) {
     print(paste("Model took", Sys.time() - start.model, units(Sys.time()-start.model)))
     
     attr(fit, "species") <- attr(Data, "species")
-    saveRDS(fit, paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.rds"))
+    saveRDS(fit, paste0("output/Fits/Basalarea/wzp12/",species,"/Basalarea_",species,"_fit.rds"))
     })
 }
 
@@ -71,14 +71,14 @@ for(species in species.vect) {
 df.allsp <- data.frame()
 
 # Save Model Summary in pdf
-pdf(paste0("output/Fits/Basalarea/wzp12_interpol/Basalarea_DHARMaresidual.pdf"), width = 10, height = 10) # all graphs will be printed here
+pdf(paste0("output/Fits/Basalarea/wzp12/Basalarea_DHARMaresidual.pdf"), width = 10, height = 10) # all graphs will be printed here
 par(oma=c(1, 1, 1.5, 0.5),mfrow = c(2,1))
 
 ## Iterate Species ---------------------------------------------------------
 for(species in species.vect) {
   print(species)
   try({
-    fit  <-  readRDS(paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.rds"))
+    fit  <-  readRDS(paste0("output/Fits/Basalarea/wzp12/",species,"/Basalarea_",species,"_fit.rds"))
 
     # set up output chart
     df.out <-  data.frame()
@@ -139,7 +139,7 @@ for(species in species.vect) {
 ## Save outputs -------------------------------------------------------------
     #df.out
     df.out[1,"species"] <- species
-    write.csv(df.out, paste0("output/Fits/Basalarea/wzp12_interpol/",species,"/Basalarea_",species,"_fit.csv"), row.names = F)
+    write.csv(df.out, paste0("output/Fits/Basalarea/wzp12/",species,"/Basalarea_",species,"_fit.csv"), row.names = F)
 
     # save in all species df
     df.allsp <- bind_rows(df.allsp, df.out[1,])
@@ -148,7 +148,7 @@ for(species in species.vect) {
 
 ## Save summary over all species -------------------------------------------
 # Save df
-write.csv2(df.allsp, "output/Fits/Basalarea/wzp12_interpol/Basalarea_model_summary.csv", row.names = FALSE)
+write.csv2(df.allsp, "output/Fits/Basalarea/wzp12/Basalarea_model_summary.csv", row.names = FALSE)
 
 
 #close pdf
