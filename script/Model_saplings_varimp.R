@@ -90,8 +90,10 @@ for(leftout in unique(varimp$Category)){
                         exclude = "yearmonth",
                         fam = nb,
                         s.k = 10,
-                        te.k= "c(25,50)",
-                        ste.bs = "cs", # is faster than ts
+                        s.bs = "cs",
+                        spat.which = "tensor",
+                        spat.bs = "cs", # is faster than ts
+                        spat.k= "c(25,50)", 
                         select.var = FALSE,
                         bam = TRUE,
                         Data = mv,
