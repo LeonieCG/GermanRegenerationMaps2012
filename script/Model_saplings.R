@@ -12,6 +12,8 @@ sapply(packages, FUN = library, character.only = T)
 
 # Choose output location --------------------------------------------------
 outloc = "h50d7_Germany/" 
+# dir.create("output/Fits/Sapling/h50d7_Germany/")
+# for (i in species.vect) {dir.create(paste0("output/Fits/Sapling/h50d7_Germany/",i))} # creates folder structure
 
 # Load data ---------------------------------------------------------------
 
@@ -23,7 +25,7 @@ regeneration <- readRDS("data/DE_BWI3_regeneration_h50d7.rds")
 E <- readRDS("data/DE_BWI3_explvars_df.rds") 
 
 # Species dependent
-WZP12 <- readRDS("/bigdata/Inventories/DE BWI/Data/DE_BWI3_big_basalarea_wzp12.rds")
+WZP12 <- readRDS("data/DE_BWI3_big_basalarea_wzp12_interpol.rds")
 
 ## Sapling species -----------------------------------------------------------------
 source("script/Species_select.R")
@@ -34,21 +36,21 @@ source("script/Model_functions.R")  # includes building Model variable table, Mo
 ## Choose variables ----------------------------------------------------------
 source("script/Model_vars.R") # This selects your response and predictor variables
 
-# due to licencing, not all environmental predictors could be published with this study 
-# the following is a selection, model outcomes can thereby vary highly from the study!
-resp = "count"
-fixed = c("tPeriodic2020_forcli", "tSeas2020_forcli","tMinColdMonth2020_forcli","tRangeDay2020_forcli","tRangeAn2020_forcli" #T microclimate
-          , "tPeriodic2010_chelsa", "tSeas2010_chelsa","tMinColdMonth2010_chelsa","tRangeDay2010_chelsa","tRangeAn2010_chelsa" #T macroclimate
-          , "precPeriodic2010_chelsa", "precSeas2010_chelsa" # prec
-          , "wwpi_cop" # Water prob index, Anoxy indicator, water bodies and flooded plains
-          , "tcd_cop" #tree cover density
-          , "alt", "northexp", "eastexp" # terrain vars
-          , "wzp12_ba_ha_species" #Basal area of respective old trees
-)
-random = c("yearmonth" # to account for changes within sampling period
-           , "blname" # Bundesland
-)
-spatial = c("x","y")
+# # due to licencing, not all environmental predictors could be published with this study 
+# # the following is a selection, model outcomes can thereby vary highly from the study!
+# resp = "count"
+# fixed = c("tPeriodic2020_forcli", "tSeas2020_forcli","tMinColdMonth2020_forcli","tRangeDay2020_forcli","tRangeAn2020_forcli" #T microclimate
+#           , "tPeriodic2010_chelsa", "tSeas2010_chelsa","tMinColdMonth2010_chelsa","tRangeDay2010_chelsa","tRangeAn2010_chelsa" #T macroclimate
+#           , "precPeriodic2010_chelsa", "precSeas2010_chelsa" # prec
+#           , "wwpi_cop" # Water prob index, Anoxy indicator, water bodies and flooded plains
+#           , "tcd_cop" #tree cover density
+#           , "alt", "northexp", "eastexp" # terrain vars
+#           , "wzp12_ba_ha_species" # Basal area of respective old trees
+# )
+# random = c("yearmonth" # to account for changes within sampling period
+#            , "blname" # Bundesland
+# )
+# spatial = c("x","y")
 
 
 # Start Model ---------------------------------------------------------------
