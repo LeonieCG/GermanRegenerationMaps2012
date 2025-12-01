@@ -41,3 +41,22 @@ for(species in species.vect) {
 
 
 print(paste("Script took",Sys.time()-start.script, units(Sys.time()-start.script)))
+
+
+# Retrieve predicted basal area values at plot location ------------------------------------
+coord <- readRDS("data/DE_BWI3_explvars_sv.rds") %>% 
+  select(plotid)
+
+for(species in species.vect){
+  ba  <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_interpol_",species,".tif"))
+  vals <- extract(ba, coord, ID=FALSE)  # extract basal area
+  coord <- cbind(coord, vals) # combine
+}
+
+wzp12_interpol <- coord %>% 
+  as.data.frame() %>% 
+  pivot_longer(cols = 2:dim(.)[2], names_to = "tax", values_to = "wzp12_ba_ha_species") %>% 
+  group_by(tax) %>% 
+  nest
+  
+saveRDS(wzp12_interpol, "data/DE_BWI3_big_basalarea_wzp12_interpol.rds")
