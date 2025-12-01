@@ -20,7 +20,7 @@ regeneration <- readRDS("data/DE_BWI3_regeneration_h50d7.rds")
 E <- readRDS("data/DE_BWI3_explvars_df.rds") 
 
 # Species dependent
-WZP12 <- readRDS("/bigdata/Inventories/DE BWI/Data/DE_BWI3_big_basalarea_wzp12.rds")
+WZP12 <- readRDS("data/DE_BWI3_big_basalarea_wzp12_interpol.rds")
 
 ## Sapling species -----------------------------------------------------------------
 species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
