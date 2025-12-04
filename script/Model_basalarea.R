@@ -9,7 +9,7 @@ packages <- c("tidyr", "dplyr","magrittr", "terra", "mgcv", "gstat", "DHARMa",
 # sapply(packages, FUN = install.packages, character.only = T)
 sapply(packages, FUN = library, character.only = T)
 
-outloc = "wzp_cv/"
+outloc = "wzp12/"
 
 # Load data ---------------------------------------------------------------
 
@@ -39,27 +39,23 @@ for(species in species.vect) {
 
 ## Built model variables ---------------------------------------------------
   mv <- modelVariables(species = species)
-  
-  Data <- mv %>% 
-    select(wzp12_ba_ha_species, x, y) %>% 
-    drop_na()
-  
+
 
 ## Run model ---------------------------------------------------------------
   try({
     start.model <- Sys.time()
-    
-    form_all <- as.formula("wzp12_ba_ha_species ~ s(x, y, bs = 'tp', k = 200)")
-    print(form_all)
-    
-    fit <- bam(formula = form_all, family = tw(), data = Data
-               , select = FALSE
-               , method = "fREML" 
-               , discrete=TRUE, nthreads=10) # speeds up calculation
-    
-    print(paste("Model took", Sys.time() - start.model, units(Sys.time()-start.model)))
-    
-    attr(fit, "species") <- attr(Data, "species")
+
+    fit <- model.fit(resp = "wzp12_ba_ha_species",
+                     spatial = c("x","y"),
+                     fam = tw,
+                     spat.which = "spline",
+                     spat.k = 200,
+                     spat.bs = "tp",
+                     select.var = FALSE,
+                     bam = TRUE,
+                     Data = mv,
+                     CV = FALSE)
+
     saveRDS(fit, paste0("output/Fits/Basalarea/",outloc,species,"/Basalarea_",species,"_fit.rds"))
     })
 }
@@ -84,7 +80,8 @@ for(species in species.vect) {
 
     # set up output chart
     df.out <-  data.frame()
-
+    
+    
 ### Check DHARMa ------------------------------------------------------------
     sims <- simulateResiduals(fit, plot=T) #, exclude = paste0("s(", random, ")")) # for accounting for random effects add: exclude = paste0("s(", random, ")")
     
