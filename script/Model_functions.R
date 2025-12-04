@@ -30,7 +30,8 @@ modelVariables <- function(species){
 
 
 # Model function ----------------------------------------------------------
-# For bug fixing:
+# # For bug fixing:
+# # Regeneration
 # resp = resp
 # fixed = fixed
 # fixedfact = NULL
@@ -44,6 +45,27 @@ modelVariables <- function(species){
 # spat.which = "tensor"
 # spat.k= spat.k= "c(25,50)"
 # spat.bs = "cs"
+# select.var = FALSE
+# bam = TRUE
+# Data = mv
+# CV = "blockcv"
+# blockcv.dr = 300000 # 300000 gives 11 blocks for whole germany
+# blockcv.k = 10
+
+# # wzp
+# resp = "wzp12_ba_ha_species"
+# fixed = NULL
+# fixedfact = NULL
+# random = NULL
+# spatial = c("x","y")
+# offset = NULL
+# exclude = NULL
+# fam = tw
+# s.k = -1
+# s.bs = "cs" # is faster than ts
+# spat.which = "spline"
+# spat.k= spat.k= 200
+# spat.bs = "tp"
 # select.var = FALSE
 # bam = TRUE
 # Data = mv
@@ -233,14 +255,14 @@ blockcv <- function(blockcv.k,
     # Validation based on cluster means
     train.res <- 
       train %>% 
-      select(c(resp, clusterid)) %>%
+      select(all_of(c(resp, "clusterid"))) %>%
       mutate(clusterid = as.factor(clusterid)) %>% 
       mutate(fitted = fit.cv$fitted.values) %>% 
       group_by(clusterid) %>% 
       summarise(across(c(resp, fitted), mean, na.rm = TRUE))
     
     test.res <- test %>% 
-      select(c(resp, clusterid)) %>% 
+      select(all_of(c(resp, "clusterid"))) %>% 
       mutate(clusterid = as.factor(clusterid)) %>% 
       mutate(prediction = prediction.cv) %>% 
       group_by(clusterid) %>% 
@@ -257,7 +279,7 @@ blockcv <- function(blockcv.k,
     rsq.train[i] <- rsq$cohenrsq.train
     rsq.test[i] <- rsq$cohenrsq.test
     }
-  head(train)
+  
   
   # Save CV output with model information
   CV <- list(cv.method = "blocked cross validation", 
@@ -305,13 +327,13 @@ get_cohenrsq <- function(fit,
   
   # Cluster means
   train.clust <- train %>% 
-    select(c(clusterid, resp)) %>% 
+    select(all_of(c(resp, "clusterid"))) %>% 
     group_by(clusterid) %>% 
     summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
     as.data.frame()
   
   test.clust <- test %>% 
-    select(c(clusterid, resp)) %>% 
+    select(all_of(c(resp, "clusterid"))) %>% 
     group_by(clusterid) %>% 
     summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>% 
     as.data.frame()
