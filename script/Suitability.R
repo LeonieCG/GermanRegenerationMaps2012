@@ -144,7 +144,7 @@ scr <- merge(rast_df, scr, by = "cell", all = T) %>%
 scr_rast <- as_spatraster(scr, xycols = 1:2, crs = crs(bay.f))
 plot(scr_rast)
 
-writeRaster(scr_rast, "output/Cultivationrisk/Regeneration_cultivationrisk.tif", overwrite = TRUE)
+writeRaster(scr_rast, "output/Suitability/Regeneration_suitability.tif", overwrite = TRUE)
 
 
 end <- Sys.time()
