@@ -1,4 +1,4 @@
-# This script calculates the proportion of regeneration at high cultivation risk
+# This script calculates the proportion of regeneration at high cultivation risk or low future suitability
 # Data is not publicly available and thus not published by the study
 
 start <- Sys.time()
