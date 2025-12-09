@@ -98,8 +98,8 @@ df_total <- rbind(df_total,df)
 }
 
 # save preliminary results
-saveRDS(df_total, "output/Cultivationrisk/df_total_cache.rds")
-df_total <- readRDS("output/Cultivationrisk/df_total_cache.rds")
+saveRDS(df_total, "output/Suitability/df_total_cache.rds")
+df_total <- readRDS("output/Suitability/df_total_cache.rds")
 
 
 # Complete for cell, cultrisk and species calculate ------------------------------------------------------------------
@@ -121,8 +121,8 @@ df_total_sum <-
   ungroup()
 
 # save preliminary results
-saveRDS(df_total_sum, "output/Cultivationrisk/df_total_sum_cache.rds")
-df_total_sum <- readRDS("output/Cultivationrisk/df_total_sum_cache.rds")
+saveRDS(df_total_sum, "output/Suitability/df_total_sum_cache.rds")
+df_total_sum <- readRDS("output/Suitability/df_total_sum_cache.rds")
 
 
 # Sapling cultivation risk spatRaster -------------------------------------
