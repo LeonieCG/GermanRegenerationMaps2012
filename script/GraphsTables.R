@@ -35,7 +35,7 @@ div = colorRampPalette(c("grey90","#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#9A3F0
 sunset = colorRampPalette(c("#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#C36377FF", "#61599DFF", "#1D457F", "#191F40FF", "black"))
 
 ### Plot --------------------------------------------------------------------
-sapling.map <- function(species.vect=species.vect, source, scale, scale.plot, max.count){
+sapling.map <- function(species.vect=species.vect, source, scale, scale.plot, max.count, text.size){
   for(species in species.vect){
     print(species)
     # load
@@ -63,54 +63,54 @@ sapling.map <- function(species.vect=species.vect, source, scale, scale.plot, ma
       theme(legend.title = element_text(size = 8),
             legend.text = element_text(size = 7))+
       geom_spatvector(data = scale.plot, fill = "transparent", colour = "black", linewidth = 0.1)+
-      annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
+      annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = text.size, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
     
     assign(paste0("p.",species), p , envir = .GlobalEnv)
       
     # save
-    ggsave(plot = p,
-           filename = paste0("output/Graphs/Regeneration_",scale,"_",species,".png"),
-           height = 8, width = 8, units = "cm", dpi = 900,
-           bg = "white",
-           device=grDevices::png)
+    # ggsave(plot = p,
+    #        filename = paste0("output/Graphs/Regeneration_",scale,"_",species,".png"),
+    #        height = 8, width = 8, units = "cm", dpi = 900,
+    #        bg = "white",
+    #        device=grDevices::png)
   }
 }
 
 
-
-# choosing max.count
-regstack <- rast(paste0("output/Predictions/Regeneration_",species.final[1],".tif")) %>%
-  select(paste0(species.final[1]))
-
-for (i in 2:length(species.final)){
-  stackadd <- rast(paste0("output/Predictions/Regeneration_",species.final[i],".tif")) %>%
-    select(paste0(species.final[i]))
-  regstack <- c(regstack, stackadd)
-  rm(stackadd)
-}
-
-global(regstack, "max",na.rm=T)
-
-# 99% Quantile
-quantile(terra::values(regstack), 0.99, na.rm = TRUE)# of all regeneration maps
-
-regstack.rest <- regstack %>%
-  select(species.final[!species.final %in% c("Picea.abies","Abies.alba", "Fagus.sylvatica")])
-quantile(terra::values(regstack.rest), 0.99, na.rm = TRUE) # what cut off for the color scale makes sense earth engine question
-
-
 ## Final species -----------------------------------------------------------
-#sapling.map(scale = "Bavaria", scale.plot = bavaria, addcoord = T, max.count = 21000)
-sapling.map(species.vect = species.final, 
-            scale = "Germany", scale.plot = germany, max.count = 1186) # cut off at 99% quantile
+# Selected species
+species.sel = c("Picea.abies","Abies.alba", "Fagus.sylvatica")
+species.rest = species.final[!species.final %in% species.sel]
 
-paste0("p.",sort(species.final[!species.final %in% c("Picea.abies","Abies.alba", "Fagus.sylvatica")]), collapse = " + ")
+# Regeneration stack
+regstack <- list()
+for (species in species.final){
+  regstack[[species]] <- rast(paste0("output/Predictions/Regeneration_",species,".tif")) %>% 
+    select(all_of(species))
+}
+regstack <- rast(regstack) # Turn list into multilayer
 
-p.Acer.campestre + p.Acer.platanoides + p.Alnus.glutinosa + p.Alnus.incana + p.Betula.pubescens +
+
+# Regstack of rest species
+regstack.rest <- regstack %>%
+  select(all_of(species.rest))
+
+quantile(terra::values(regstack.rest), 0.99, na.rm = TRUE)
+max(terra::values(regstack.rest), na.rm = TRUE)
+
+sapling.map(species.vect = species.rest, text.size = 1.8,
+            scale = "Germany", scale.plot = germany, max.count = 580) # cut off color scale at 99% quantile
+
+# paste0("p.",sort(species.rest), collapse = " + ")
+
+p.Acer.campestre + p.Acer.platanoides + p.Alnus.glutinosa + p.Betula.pubescens + 
   p.Carpinus.betulus + p.Castanea.sativa + p.Fraxinus.excelsior + p.Larix.kaempferi +
-  p.Pinus.sylvestris + p.Populus.nigra + p.Prunus.avium + p.Prunus.serotina + p.Pseudotsuga.menziesii +
-  p.Quercus.robur + p.Quercus.rubra + p.Robinia.pseudoacacia + p.Sorbus.aria + p.Tilia +
-  plot_layout(ncol = 4, nrow = 5, guides = 'collect')
+  p.Picea.sitchensis + p.Pinus.mugo + p.Pinus.sylvestris + p.Populus.nigra + 
+  p.Populus.tremula + p.Populus.trichocarpa.x.maximoviczii + p.Prunus.avium + 
+  p.Pseudotsuga.menziesii + p.Pyrus.communis + p.Quercus.petraea + p.Quercus.robur +
+  p.Quercus.rubra + p.Robinia.pseudoacacia + p.Salix + p.Sorbus.aria + 
+  p.Sorbus.torminalis + p.Tilia + p.Ulmus +
+  plot_layout(ncol = 5, nrow = 6, guides = 'collect')
 
 ggsave(filename = "output/Graphs/Regeneration_Germany_rest.png",
        height = 28, width = 20, units = "cm", dpi = 900,
@@ -118,8 +118,14 @@ ggsave(filename = "output/Graphs/Regeneration_Germany_rest.png",
        device=grDevices::png)
 
 ## Selected species --------------------------------------------------------
+# Regstack of selected species
+regstack.sel <- regstack %>%
+  select(all_of(species.sel))
+
+max(terra::values(regstack.sel), na.rm = TRUE)
+
 sapling.map(species.vect = c("Picea.abies","Abies.alba", "Fagus.sylvatica"), # max count is 44073.406 of FS
-            scale = "Germany", scale.plot = germany, max.count = 45000) 
+            text.size = 3, scale = "Germany", scale.plot = germany, max.count = 55900) 
 
 p.Fagus.sylvatica + p.Picea.abies + p.Abies.alba + plot_layout(guides = 'collect')
 
@@ -136,15 +142,13 @@ species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.
 # species.final <- "Abies.alba" # for test reasons
 # species = "Abies.alba"
 
-regstack <- rast(paste0("output/Predictions/Regeneration_",species.final[1],".tif")) %>%
-  select(paste0(species.final[1]))
-
-for (i in 2:length(species.final)){
-  stackadd <- rast(paste0("output/Predictions/Regeneration_",species.final[i],".tif")) %>%
-    select(paste0(species.final[i]))
-  regstack <- c(regstack, stackadd)
-  rm(stackadd)
+regstack <- list()
+for (species in species.final){
+  regstack[[species]] <- rast(paste0("output/Predictions/Regeneration_",species,".tif")) %>% 
+    select(all_of(species))
 }
+regstack <- rast(regstack) # Turn list into multilayer
+
 
 regtot = sum(regstack)
 names(regtot) <- "count_tot_ha"
@@ -902,7 +906,7 @@ BWI_specdens %>%
 
 ## Species specific confidence interval maps ------------------------------
 
-### CI width and relative width ----------------------------------------------
+
 # during the prediction process the upper and lower limit of the 95%-confidence interval were computed
 
 # Function to process each species
@@ -912,13 +916,13 @@ process_species <- function(species) {
   
   # Calculate CI width and relative width
   r$widthCI <- r$upperCI - r$lowerCI
-  r$relwidthCI <- r$mean/ r$widthCI
+  r$relwidthCI <- r$widthCI/r$mean
   
     list(widthCI = r$widthCI, relwidthCI = r$relwidthCI)# Return the two layers
 }
 
 # Apply the function to all species
-results <- map(species.final, process_species)
+results <- map(sort(species.final), process_species)
 
 # Combine all widthCI layers
 widthCI_stack <- rast(map(results, "widthCI"))
@@ -927,6 +931,9 @@ names(widthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
 # Combine all relwidthCI layers
 relwidthCI_stack <- rast(map(results, "relwidthCI"))
 names(relwidthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
+
+
+### CI width ----------------------------------------------
 
 # plot CI widths
 ggplot() +
@@ -939,13 +946,20 @@ ggplot() +
     colors = sunset(7),
     space = "Lab" ,
     trans = "log1p",
-    breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),
-    labels = scales::comma(c(0,10,100,1000,10000, 100000,1e6,1e7))) +
+    breaks = scales::breaks_log(n=6),
+    labels = scales::math_format())+
   guides(fill = guide_colourbar(barwidth = 1)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7)) +
   geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
 
+ggsave(filename = "output/Graphs/Regeneration_CIwidth.png",
+       height = 28, width = 26, units = "cm", dpi = 900,
+       bg = "white",
+       device=grDevices::png)
+
+
+# CI relative width ------------------------------------------------------
 # plot relative CI widths
 ggplot() +
   theme_void() +
@@ -955,15 +969,19 @@ ggplot() +
     "Relative CI width [ha⁻¹]",
     na.value = "transparent",
     colors = sunset(7),
-    space = "Lab") + # ,
-    # trans = "log1p",
-    # breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),
-    # labels = scales::comma(c(0,10,100,1000,10000, 100000,1e6,1e7))) +
+    space = "Lab",
+    trans = "log1p",
+    breaks = scales::breaks_log(n=5),
+    labels = scales::math_format()) +
   guides(fill = guide_colourbar(barwidth = 1)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7)) +
   geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
 
+ggsave(filename = "output/Graphs/Regeneration_CIrelwidth.png",
+       height = 28, width = 26, units = "cm", dpi = 900,
+       bg = "white",
+       device=grDevices::png)
 
 # More ideas 
 # - RGB composite map (hard to read)
@@ -978,16 +996,16 @@ ggplot() +
 sunset = colorRampPalette(c("#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#C36377FF", "#61599DFF", "#1D457F", "#191F40FF", "black"))
 
 # create multilayer Raster
-regstack <- list()
+bastack <- list()
 for (species in species.vect){
-  regstack[[species]] <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"))
- }
-regstack <- rast(regstack) # Turn list into multilayer
+  bastack[[species]] <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"))
+}
+bastack <- rast(bastack) # Turn list into multilayer
 
-max(regstack, na.rm = T)
+max(bastack, na.rm = T)
 
 # 99% Quantile
-quantile(terra::values(regstack), 0.99, na.rm = TRUE)# of all regeneration maps
+quantile(terra::values(bastack), 0.99, na.rm = TRUE)# of all regeneration maps
 
 # Plot
 ba_plots = list()
@@ -995,7 +1013,7 @@ ba_plots = list()
 for(species in sort(species.vect)){
   print(species)
   
-  ba = regstack %>% 
+  ba = bastack %>% 
     select(species)
 
   p <-
