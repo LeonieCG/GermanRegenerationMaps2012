@@ -76,7 +76,7 @@ for(species in species.vect) {
                   s.bs = "cs",
                   spat.which = "tensor",
                   spat.bs = "cs", # is faster than ts
-                  spat.k= "c(25,50)", 
+                  spat.k= "c(25,50)",
                   select.var = FALSE,
                   bam = TRUE,
                   Data = mv,
