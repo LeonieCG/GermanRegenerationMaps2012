@@ -1028,55 +1028,7 @@ dev.off()
 
 patchwork::wrap_plots(ba_plots, ncol = 7, nrow = 7, guides = 'collect')
 
-ggsave(filename = "output/Graphs/Basalarea_Germany_interpol.png",
+ggsave(filename = "output/Graphs/Basalarea_Germany.png",
        height = 28, width = 26, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
-
-
-
-# OLD
-species.final.old = readRDS("~/NForGenBav/output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
-old <- list()
-for (species in species.final.old){
-  old[[species]] <- rast(paste0("~/NForGenBav/data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"))
-}
-old <- rast(old) # Turn list into multilayer
-max(old, na.rm = T)
-
-
-ba_plots.old = list()
-
-for(species in sort(species.final.old)){
-  print(species)
-  
-  ba.old = old %>% 
-    select(species)
-  
-  p <-
-    ggplot()+
-    theme_void()+
-    geom_spatraster(data = ba.old) +
-    scale_fill_gradientn(
-      "Basal area [m² ha\u207B\u00B9]",
-      na.value = "transparent",
-      colors = sunset(7),
-      space = "Lab",
-      trans = "log1p",
-      breaks = c(0,1,10,100),
-      labels = scales::comma(c(0,1,10,100)),
-      limits = c(0, 45)) + # use global maximum for upper limit
-    guides(fill = guide_colourbar(barwidth = 1))+
-    theme(legend.title = element_text(size = 8),
-          legend.text = element_text(size = 7))+
-    geom_spatvector(data = germany , fill = "transparent", colour = "black", linewidth = 0.1)+
-    annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
-  ba_plots.old[[species]] <- p
-}
-
-
-pdf("output/Graphs/BA_plots_old.pdf", height = 7, width = 6)
-for(species in sort(species.final.old)){
-  print(ba_plots.old[[species]])
-}
-dev.off()
