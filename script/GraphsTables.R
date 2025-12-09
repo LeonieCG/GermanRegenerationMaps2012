@@ -18,6 +18,7 @@ bavaria <- vect("data/DE_Verwaltungsgebiete5000/vg5000_ebenen_1231/VG5000_LAN.sh
   project(.,dt.f)
 
 # Species
+source("script/Species_select.R")
 species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
 species.tab <- read.csv("data/DE_BWI3_regeneration_species.csv")
 
@@ -101,7 +102,7 @@ quantile(terra::values(regstack.rest), 0.99, na.rm = TRUE) # what cut off for th
 ## Final species -----------------------------------------------------------
 #sapling.map(scale = "Bavaria", scale.plot = bavaria, addcoord = T, max.count = 21000)
 sapling.map(species.vect = species.final, 
-            scale = "Germany", scale.plot = germany, max.count = 1186) #cut off at 99% quantile
+            scale = "Germany", scale.plot = germany, max.count = 1186) # cut off at 99% quantile
 
 paste0("p.",sort(species.final[!species.final %in% c("Picea.abies","Abies.alba", "Fagus.sylvatica")]), collapse = " + ")
 
@@ -403,7 +404,7 @@ table(sprich.df$sprich >= 5)[2]/dim(sprich.df)[1]*100
 table(sprich.df$sprich >= 3)[2]/dim(sprich.df)[1]*100
 
 
-# CULTIVATION RISK ---------------------------------------------------------
+# FUTURE SUITABILITY ---------------------------------------------------------
 ## Species -----------------------------------------------------------------
 species.tab <- read.csv("data/DE_BWI3_regeneration_species.csv")
 
@@ -413,7 +414,7 @@ species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.
 
 cult.col = colorRampPalette(c("grey90", "#FCFD8F","#F3CE65","#EB9F3C","#9A3F07"))
 
-sap.risk <- rast("output/Cultivationrisk/Regeneration_cultivationrisk.tif") %>% 
+sap.risk <- rast("output/Suitability/Regeneration_suitability.tif") %>% 
   select(higher)
 crs(sap.risk)==crs(bavaria)
 
@@ -434,7 +435,7 @@ p.cult <-
 
 
 ### Map histogram ------------------------------------------------------
-sap.risk.df.nona <- readRDS("output/Cultivationrisk/df_total_sum_cache.rds") %>% 
+sap.risk.df.nona <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
   select(c(cell, cultrisk_en, count_percent)) %>% 
   pivot_wider(., names_from = cultrisk_en, values_from = count_percent) %>% 
   select(c(higher,cell)) %>% 
@@ -482,7 +483,7 @@ free(p.cult) + h.cult +
   plot_layout(design = layout)+
   plot_annotation(tag_levels = "A")
 
-ggsave(filename = paste0("output/Graphs/Cultivationrisk_regeneration.png"),
+ggsave(filename = paste0("output/Graphs/Suitability_regeneration.png"),
        height = 7, width = 11, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
@@ -507,13 +508,13 @@ risk.forestcover <- sap.risk %>%
 
 
 # Do the cells with low high cultivation risk have also low numbers of regeneration
-quest <- readRDS("output/Cultivationrisk/df_total_sum_cache.rds") %>% 
+quest <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
   filter(cultrisk_en == "higher")
 plot(log(quest$count_percent),log(quest$count_ha_cell))
 
 
 # Which species drives the pattern?
-df_total <- readRDS("output/Cultivationrisk/df_total_cache.rds")
+df_total <- readRDS("output/Suitability/df_total_cache.rds")
 
 df_total %>%
   group_by(species, cultrisk_en) %>%
@@ -525,14 +526,14 @@ df_total %>%
   filter(cultrisk_en == "higher") %>% # Percentage of higher risk!
   mutate(count_ha_higher = sum(count_ha),
          count_ha_higher_percent = (count_ha/count_ha_higher)*100) %>% 
-  write.csv(., "output/Graphs/Tab_Cultivationrisk_driver.csv", row.names=F)
+  write.csv(., "output/Graphs/Tab_Suitability_driver.csv", row.names=F)
 
 
 # BOX BAVARIA: TOTAL, DIVERSITY and CULT RISK -------------------------------------------------
 ## Cult risk ---------------------------------------------------------------
-sap.risk <- rast("output/Cultivationrisk/Regeneration_cultivationrisk.tif") %>% 
+sap.risk <- rast("output/Suitability/Regeneration_suitability.tif") %>% 
   select(higher)
-sap.risk.df.nona <- readRDS("output/Cultivationrisk/df_total_sum_cache.rds") %>% 
+sap.risk.df.nona <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
   select(c(cell, cultrisk_en, count_percent)) %>% 
   pivot_wider(., names_from = cultrisk_en, values_from = count_percent) %>% 
   select(c(higher,cell)) %>% 
@@ -869,7 +870,7 @@ merge(model.autocorr.cv, species.tab, by.x = "species", by.y = "name.id", all.x 
   write.csv(., "output/Graphs/Tab_Model_spatcorr_cv.csv", row.names=F)
 
 
-## Mean species regenration densities BWI? --------------------------------
+## Mean species regeneration densities BWI? --------------------------------
 BWI_reg <- readRDS("data/DE_BWI3_regeneration_h50d7.rds")
 source("script/Species_select.R")
 
@@ -966,8 +967,7 @@ ggplot() +
 
 # More ideas 
 # - RGB composite map (hard to read)
-# - overlay ci width e.g. opacity when it is very unceartain
-# - spatial statistics to identify clusters of high uncertainty
+# - overlay ci width e.g. opacity when it is very uncerartain
 # - zonal statistics (per geographic unit)
 # - correlation width covariates
 # - create ci width threshold when not to trust predictions...
@@ -977,18 +977,14 @@ ggplot() +
 # Visualising predicted species basal area distribution Maps
 sunset = colorRampPalette(c("#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#C36377FF", "#61599DFF", "#1D457F", "#191F40FF", "black"))
 
-# choosing max.count
-regstack <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species.final[1],".tif")) %>%
-  select(paste0(species.final[1]))
+# create multilayer Raster
+regstack <- list()
+for (species in species.vect){
+  regstack[[species]] <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"))
+ }
+regstack <- rast(regstack) # Turn list into multilayer
 
-for (i in 2:length(species.final)){
-  stackadd <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species.final[i],".tif")) %>%
-    select(paste0(species.final[i]))
-  regstack <- c(regstack, stackadd)
-  rm(stackadd)
-}
-
-global(regstack, "max",na.rm=T)
+max(regstack, na.rm = T)
 
 # 99% Quantile
 quantile(terra::values(regstack), 0.99, na.rm = TRUE)# of all regeneration maps
@@ -996,17 +992,16 @@ quantile(terra::values(regstack), 0.99, na.rm = TRUE)# of all regeneration maps
 # Plot
 ba_plots = list()
 
-for(species in sort(species.final)){
+for(species in sort(species.vect)){
   print(species)
-
-  pred <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species.final,".tif")) %>% 
-    rename(wzp12_ba_ha_species = paste0(species)) %>% 
-    select(wzp12_ba_ha_species)
+  
+  ba = regstack %>% 
+    select(species)
 
   p <-
     ggplot()+
     theme_void()+
-    geom_spatraster(data = pred) +
+    geom_spatraster(data = ba) +
     scale_fill_gradientn(
       "Basal area [m² ha\u207B\u00B9]",
       na.value = "transparent",
@@ -1015,23 +1010,73 @@ for(species in sort(species.final)){
       trans = "log1p",
       breaks = c(0,1,10,100),
       labels = scales::comma(c(0,1,10,100)),
-      limits = c(0, 135))+
+      limits = c(0, 45)) + # use global maximum for upper limit
     guides(fill = guide_colourbar(barwidth = 1))+
     theme(legend.title = element_text(size = 8),
           legend.text = element_text(size = 7))+
     geom_spatvector(data = germany , fill = "transparent", colour = "black", linewidth = 0.1)+
     annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
   ba_plots[[species]] <- p
-
 }
 
-patchwork::wrap_plots(ba_plots, ncol = 5, nrow = 5, guides = 'collect')
 
-ggsave(filename = "output/Graphs/Basalarea_Germany.png",
-       height = 28, width = 20, units = "cm", dpi = 900,
+pdf("output/Graphs/BA_plots.pdf", height = 7, width = 6)
+for(species in sort(species.vect)){
+  print(ba_plots[[species]])
+}
+dev.off()
+
+patchwork::wrap_plots(ba_plots, ncol = 7, nrow = 7, guides = 'collect')
+
+ggsave(filename = "output/Graphs/Basalarea_Germany_interpol.png",
+       height = 28, width = 26, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
 
 
 
+# OLD
+species.final.old = readRDS("~/NForGenBav/output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
+old <- list()
+for (species in species.final.old){
+  old[[species]] <- rast(paste0("~/NForGenBav/data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"))
+}
+old <- rast(old) # Turn list into multilayer
+max(old, na.rm = T)
+
+
+ba_plots.old = list()
+
+for(species in sort(species.final.old)){
+  print(species)
   
+  ba.old = old %>% 
+    select(species)
+  
+  p <-
+    ggplot()+
+    theme_void()+
+    geom_spatraster(data = ba.old) +
+    scale_fill_gradientn(
+      "Basal area [m² ha\u207B\u00B9]",
+      na.value = "transparent",
+      colors = sunset(7),
+      space = "Lab",
+      trans = "log1p",
+      breaks = c(0,1,10,100),
+      labels = scales::comma(c(0,1,10,100)),
+      limits = c(0, 45)) + # use global maximum for upper limit
+    guides(fill = guide_colourbar(barwidth = 1))+
+    theme(legend.title = element_text(size = 8),
+          legend.text = element_text(size = 7))+
+    geom_spatvector(data = germany , fill = "transparent", colour = "black", linewidth = 0.1)+
+    annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
+  ba_plots.old[[species]] <- p
+}
+
+
+pdf("output/Graphs/BA_plots_old.pdf", height = 7, width = 6)
+for(species in sort(species.final.old)){
+  print(ba_plots.old[[species]])
+}
+dev.off()
