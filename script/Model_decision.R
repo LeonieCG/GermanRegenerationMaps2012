@@ -39,21 +39,7 @@ ms_reg_out <- ms_reg %>%
 # Dispersion:
 ms_reg_final %>% 
   filter(disp.p <= 0.05) %>% 
-  select(species)
-
-# Tilia within bars
-# Quercus.rubra within bars
-# Pinus.sylvestris 0.5
-# Picea.abies 0.5
-# Abies.alba 0.5
-# Acer.campestre within bars
-# Carpinus.betulus 0.5
-# Fraxinus.excelsior 0.75
-# Alnus.glutinosa within bars
-# Fagus.sylvatica 0.4
-# Prunus.serotina within bars
-# Prunus.avium within bars
-# -> no major deviation!
+  select(species, disp.p)
 
 # Zero inflation:
 ms_reg_final %>% 
@@ -62,7 +48,8 @@ ms_reg_final %>%
 
 # Spatial autocorrelation
 ms_reg_final %>%
-  filter(spatautocorr.p <= 0.05)
+  filter(spatautocorr.p <= 0.05) %>% 
+  select(species)
 
 ms_reg %>% # before model selection
   filter(spatautocorr.p <= 0.05)
@@ -79,93 +66,14 @@ scale_x_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
 scale_y_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
 geom_hline(yintercept = 0) +
 geom_vline(xintercept = 0) +
-geom_vline(xintercept = 0.1) +
+geom_vline(xintercept = 0.1, color = "#9A3F07") +
 xlab(expression("pseudo-R"["test"]^2)) +
 ylab(expression("pseudo-R"["train"]^2)) +
 geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
              aes(x = x, y = y), fill = "#B49629", alpha = 0.3) + 
-geom_point(data= ms_reg, aes(x = rsq.test.mean, y = rsq.train.mean, colour = mae_rule )) +
+geom_point(data= ms_reg, aes(x = rsq.test.mean, y = rsq.train.mean, colour = mae.rule )) +
 scale_colour_manual(expression(Delta*"mae"), 
                     values = c("passed" = "#D36D39", "failed" = "black"))
 
-ggplot()+
-  theme_bw()+
-  scale_x_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
-  scale_y_continuous(expand=c(0, 0), limits=c(-1,1)) + #limits=c(-1.1, 1)) +
-  geom_hline(yintercept = 0) +
-  geom_vline(xintercept = 0) +
-  geom_vline(xintercept = 0.1) +
-  xlab(expression("pseudo-R"["test"]^2)) +
-  ylab(expression("pseudo-R"["train"]^2)) +
-  geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
-               aes(x = x, y = y), fill = "#B49629", alpha = 0.3) + 
-  geom_point(data= ms_reg, aes(x = rsq.test.median, y = rsq.train.median, colour = mae_rule )) +
-  scale_colour_manual(expression(Delta*"mae"), 
-                      values = c("passed" = "#D36D39", "failed" = "black"))
 
-
-## Basal area --------------------------------------------------------------
-ms_ba <- read.csv2("output/Fits/Basalarea/wzp12/Basalarea_model_summary.csv") 
-
-ms_ba %<>% mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
-                   rsq.rule = ifelse(rsq.test.median >= 0.1, "passed", "failed"))
-
-view(ms_ba)
-
-
-
-# Variable type importance ------------------------------------------------
-varimp <- read.csv2("data/Model_vars_varimp.csv") %>% 
-  filter(!(Category %in% c("Space", "Time")))# leave out these categories!
-
-var <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds") %>% 
-  select(species, mae.relative.median, rsq.test.median) %>% 
-  mutate(varimp = "all")
-# names(var) <- c("species", paste0("all.", names(var)[2:length(var)]))
-
-for(i in unique(varimp$Category)){
-  cat.var <- read.csv2(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",i,"/Sapling_model_summary.csv")) %>% 
-    select(species, mae.relative.median, rsq.test.median) %>% 
-    # mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
-    #      rsq.rule = ifelse(rsq.test.median >= 0.1, "passed", "failed")) %>% 
-    mutate(varimp = i)
-  # names(cat.var) <- c("species", paste0(i,".", names(cat.var)[2:length(cat.var)]))
-  var <- rbind(var, cat.var) #merge(var, cat.var, by= "species")
-  }
-print(var)
-
-rsq = var %>% 
-  select(species, rsq.test.median,varimp) %>% 
-  pivot_wider(names_from = "varimp", values_from = "rsq.test.median")
-
-mae = var %>% 
-  select(species, mae.relative.median, varimp) %>% 
-  pivot_wider(names_from = "varimp", values_from = "mae.relative.median")
-
-
-plotval = function(dat,max,lab){
-  plots <- list()
-  for(i in unique(varimp$Category)){
-    print(i)
-    p <-
-     ggplot()+
-      theme_bw()+
-      scale_x_continuous(expand=c(0, 0), limits=c(0,max)) + #limits=c(-1.1, 1)) +
-      scale_y_continuous(expand=c(0, 0), limits=c(0,max)) + #limits=c(-1.1, 1)) +
-      geom_hline(yintercept = 0) +
-      geom_vline(xintercept = 0) +
-      geom_vline(xintercept = 0.1, color =  "#1D457F") +
-      geom_hline(yintercept = 0.1, color =  "#1D457F") +
-      # xlab(bquote(.(lab)["all"])) +
-      # ylab(bquote(.(lab)[.(i)])) +
-      geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
-                   aes(x = x, y = y), fill = "#B49629", alpha = 0.3) +
-      geom_point(aes(x = dat[["all"]], y = dat[[i]]))
-   #print(p)
-   plots[[i]]<- p
-  }
-  return(plots)
-}
-dat = plotval(dat=rsq, max = 0.7, lab = "Median pseudo-R²")
-patchwork::wrap_plots(plotval(mae, max = 1.5, lab = "Median relative MAE"))
-#!!!! something does not work here!!!! it is plotting the same plot all over!
+print("done")
