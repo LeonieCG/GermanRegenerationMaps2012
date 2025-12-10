@@ -42,18 +42,18 @@ for(species in species.vect) {
 
 
 # Retrieve predicted basal area values at plot location ------------------------------------
-coord <- readRDS("data/DE_BWI3_explvars_sv.rds") %>% 
-  select(plotid)
-
+loc <- read.csv("data/bwi_wzp12_ba_ha_cells.csv") %>% # cell ids extracted by Thünen
+  mutate(plotid = paste0("DE_BWI_",tnr,".",enr)) %>% 
+  select(plotid, cell)
 
 for(species in species.vect){
   ba  <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"))
-  vals <- extract(ba, coord, ID=FALSE)  # extract basal area
-  coord <- cbind(coord, vals) # combine
+  vals <- extract(ba, loc$cell)# extract basal area
+  loc <- cbind(loc, vals)# combine
 }
 
-wzp12_interpol <- coord %>% 
-  as.data.frame() %>% 
+wzp12_interpol <- loc %>% 
+  select(-cell) %>% 
   pivot_longer(cols = 2:dim(.)[2], names_to = "tax", values_to = "wzp12_ba_ha_species") %>% 
   group_by(tax) %>% 
   nest()
