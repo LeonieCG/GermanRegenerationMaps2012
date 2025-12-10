@@ -77,7 +77,7 @@ sapling.map <- function(species.vect=species.vect, source, scale, scale.plot, ma
 }
 
 
-## Final species -----------------------------------------------------------
+## Selected species -----------------------------------------------------------
 # Selected species
 species.sel = c("Picea.abies","Abies.alba", "Fagus.sylvatica")
 species.rest = species.final[!species.final %in% species.sel]
@@ -247,9 +247,9 @@ ggsave(filename = "output/Graphs/S_Density.png",
 mean(regtot.df$count_tot_ha,na.rm=T)
 
 # how much area is affected by < 1000 , 1000-2000, 20000
-length(regtot.df[regtot.df$count_tot_ha < 1000,])/length(regtot.df$count_tot_ha)*100
-length(regtot.df[regtot.df$count_tot_ha >= 1000 & regtot.df$count_tot_ha < 2000,])/length(regtot.df$count_tot_ha)*100
-length(regtot.df[regtot.df$count_tot_ha >= 2000,])/length(regtot.df$count_tot_ha)*100
+dim(regtot.df[regtot.df$count_tot_ha < 1000,])[1]/length(regtot.df$count_tot_ha)*100
+dim(regtot.df[regtot.df$count_tot_ha >= 1000 & regtot.df$count_tot_ha < 2000,])[1]/length(regtot.df$count_tot_ha)*100
+dim(regtot.df[regtot.df$count_tot_ha >= 2000,])[1]/length(regtot.df$count_tot_ha)*100
 
 ## Table mean density per species --------------------------------------------------
 reg.stats = global(c(regstack,regtot), c("mean","sd"), na.rm=TRUE)
@@ -352,7 +352,7 @@ p.div.cont <-
     na.value = "transparent",
     colors = sunset(7),
     space = "Lab",
-     breaks = c(0,2,4,6,8,10),#Sapling
+     breaks = c(0,2,4,6,8,10,12),#Sapling
     # labels = scales::trans_format("log10", scales::math_format(10^.x)),#Sapling
     limits = c(0, global(sprich.rast$sprich, max, na.rm=T)$max))+
   guides(fill = guide_colourbar(barwidth = 1))+
@@ -398,14 +398,12 @@ mean(sprich.df$sprich)
 # how much of the forest has a sp richness <=2?
 table(sprich.df$sprich <=2)[2]/dim(sprich.df)[1]*100
 
-# how much of the forest has a sp richness >= 5?
-table(sprich.df$sprich >= 5)[2]/dim(sprich.df)[1]*100
-
 # how much of the forest has a sp richness 3-4?
 (table(sprich.df$sprich == 3)[2]+ table(sprich.df$sprich == 4)[2])/dim(sprich.df)[1]*100
 
-# how much of the forest has a sp richness > 4?
-table(sprich.df$sprich >= 3)[2]/dim(sprich.df)[1]*100
+# how much of the forest has a sp richness >= 5?
+table(sprich.df$sprich >= 5)[2]/dim(sprich.df)[1]*100
+
 
 
 # FUTURE SUITABILITY ---------------------------------------------------------
@@ -947,7 +945,7 @@ ggplot() +
     space = "Lab" ,
     trans = "log1p",
     breaks = scales::breaks_log(n=6),
-    labels = scales::math_format())+
+    labels = scales::trans_format("log10", scales::math_format(10^.x)))+
   guides(fill = guide_colourbar(barwidth = 1)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7)) +
@@ -972,7 +970,7 @@ ggplot() +
     space = "Lab",
     trans = "log1p",
     breaks = scales::breaks_log(n=5),
-    labels = scales::math_format()) +
+    labels = scales::trans_format("log10", scales::math_format(10^.x))) +
   guides(fill = guide_colourbar(barwidth = 1)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7)) +
