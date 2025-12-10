@@ -408,6 +408,7 @@ table(sprich.df$sprich >= 5)[2]/dim(sprich.df)[1]*100
 
 # FUTURE SUITABILITY ---------------------------------------------------------
 ## Species -----------------------------------------------------------------
+## Load -----------------------------------------------------------------
 species.tab <- read.csv("data/DE_BWI3_regeneration_species.csv")
 
 species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
@@ -416,14 +417,14 @@ species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.
 
 cult.col = colorRampPalette(c("grey90", "#FCFD8F","#F3CE65","#EB9F3C","#9A3F07"))
 
-sap.risk <- rast("output/Suitability/Regeneration_suitability.tif") %>% 
+sap.risk <- rast("output/Suitability/Regeneration_suitability.tif") %>%
   select(higher)
 crs(sap.risk)==crs(bavaria)
 
 
 ## Plot ----------------------------------------------------------------
 ### Map ----------------------------------------------------------------
-p.cult <-  
+p.cult <- 
   ggplot()+
   theme_void()+
   geom_spatvector(data = bavaria, fill = "white", colour = "transparent")+
@@ -450,7 +451,7 @@ h.cult <-
   geom_histogram(binwidth = 5,
                  boundary = 0,#-0.5
                  fill=cult.col(20), color="black") +
-  xlab("Proportion of regeneration at\nhigh cultivation risk [%]") +
+  xlab("Proportion of regeneration of\nlow future suitability [%]") +
   ylab("Area [10\u00B3 ha]")+
   scale_y_continuous(limits=c(0,69e4),
                      breaks = c(0,2e5,4e5,6e5),
@@ -463,7 +464,7 @@ h.cult <-
            colour = "#1D457F") +
   annotate("text", x = round(median(sap.risk.df.nona$higher, na.rm =T))+ 2, y = 65e4, 
            hjust = 0, vjust = 0.5,
-           label = paste(strwrap(paste0("50% of forest area has a cultivation risk <", round(median(sap.risk.df.nona$higher, na.rm =T), digits=1),"%"), 20), collapse = "\n"),
+           label = paste(strwrap(paste0("50% of forest area has <", round(median(sap.risk.df.nona$higher, na.rm =T), digits=1),"% of low future suitability"), 20), collapse = "\n"),
            colour = "#1D457F",
            size = 2) +
   annotate("segment", x = 100, xend = 75, y = 2e5, yend = 2e5,
@@ -471,11 +472,9 @@ h.cult <-
            colour = "#1D457F")+
   annotate("text", x = 100, y = 2.5e5, 
            hjust = 1, vjust = -0.1,
-           label = paste(strwrap(paste0(round(table(sap.risk.df.nona$higher >= 75)[2]/dim(sap.risk.df.nona)[1]*100, digits=1),"% forest area has a high proportion of regeneration at risk (\u226575%)"), 25), collapse = "\n"),
+           label = paste(strwrap(paste0(round(table(sap.risk.df.nona$higher >= 75)[2]/dim(sap.risk.df.nona)[1]*100, digits=1),"% forest area has a high proportion of regeneration of low suitability (\u226575%)"), 25), collapse = "\n"),
            colour = "#1D457F",
            size = 2)
-
-table(sap.risk.df.nona$higher >= 75)[2]
 
 layout <- c(
   area(t = 0, b = 10, l = 0,  r = 13),
@@ -490,9 +489,8 @@ ggsave(filename = paste0("output/Graphs/Suitability_regeneration.png"),
        bg = "white",
        device=grDevices::png)
 
-
 ## Stats-------------------------------------------------
-sap.risk.df <- readRDS("output/Cultivationrisk/df_total_sum_cache.rds") %>% 
+sap.risk.df <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
   select(c(cell, cultrisk_en, count_percent)) %>% 
   pivot_wider(., names_from = cultrisk_en, values_from = count_percent) %>% 
   select(c(higher,cell))
@@ -508,6 +506,9 @@ risk.forestcover <- sap.risk %>%
   as.data.frame()
 100-(sum(is.na(risk.forestcover$higher))/dim(risk.forestcover)[1]*100)
 
+
+# How much area is affected by a high proportion at low future suitability?
+table(sap.risk.df.nona$higher >= 75)[2]
 
 # Do the cells with low high cultivation risk have also low numbers of regeneration
 quest <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
@@ -561,7 +562,7 @@ b.risk.h <-
   geom_histogram(binwidth = 5,
                  boundary = 0,#-0.5
                  fill=cult.col(20), color="black") +
-  xlab("Proportion of regeneration at\nhigh cultivation risk [%]") +
+  xlab("Proportion of regeneration of\nlow future suitability [%]") +
   ylab("Area [10\u00B3 ha]")+
   scale_y_continuous(limits=c(0,69e4),
                      breaks = c(0,2e5,4e5,6e5),
@@ -574,7 +575,7 @@ b.risk.h <-
            colour = "#1D457F") +
   annotate("text", x = round(median(sap.risk.df.nona$higher, na.rm =T))+ 2, y = 65e4, 
            hjust = 0, vjust = 0.5,
-           label = paste(strwrap(paste0("50% of forest area has a cultivation risk <", round(median(sap.risk.df.nona$higher, na.rm =T), digits=1),"%"), 26), collapse = "\n"),
+           label = paste(strwrap(paste0("50% of the forest area has <", round(median(sap.risk.df.nona$higher, na.rm =T), digits=1),"% of low future suitability"), 26), collapse = "\n"),
            colour = "#1D457F",
            size = 2) +
   annotate("segment", x = 100, xend = 75, y = 2e5, yend = 2e5,
@@ -582,7 +583,7 @@ b.risk.h <-
            colour = "#1D457F")+
   annotate("text", x = 100, y = 2.5e5, 
            hjust = 1, vjust = -0.1,
-           label = paste(strwrap(paste0(round(table(sap.risk.df.nona$higher >= 75)[2]/dim(sap.risk.df.nona)[1]*100, digits=1),"% forest area has a high proportion of regeneration at risk (\u226575%)"), 30), collapse = "\n"),
+           label = paste(strwrap(paste0(round(table(sap.risk.df.nona$higher >= 75)[2]/dim(sap.risk.df.nona)[1]*100, digits=1),"% forest area has a high proportion of regeneration of low suitability (\u226575%)"), 30), collapse = "\n"),
            colour = "#1D457F",
            size = 2)
 
@@ -632,12 +633,9 @@ b.sprich <-
         legend.text = element_text(size = 7)) +
   geom_spatvector(data = bavaria, fill = "transparent", colour = "black", linewidth = 0.1)
 
-sprich.bay.df <- as.data.frame(sprich.bay)
-mean(sprich.bay.df$sprich, na.rm=T)
-
 # Stats
-table(sprich.bay.df$sprich == 3 | sprich.bay.df$sprich == 4)[2]/length(sprich.bay.df$sprich)*100
-table(sprich.bay.df$sprich >= 5)[2]/length(sprich.bay.df$sprich)*100
+sprich.bay.df <- as.data.frame(sprich.bay)
+table(sprich.bay.df$sprich <= 2)[2]/length(sprich.bay.df$sprich)*100
 
 ## All plots ---------------------------------------------------------------
 b.tot + b.sprich + b.risk + b.risk.h +
@@ -648,6 +646,8 @@ ggsave(filename = paste0("output/Graphs/Regeneration_indicator_Bavaria.png"),
        height = 13, width = 17, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
+
+
 
 # TABLES ------------------------------------------------------------------
 ## Predictor variables overview---------------------------------------------
@@ -698,7 +698,7 @@ species.tab <- read.csv("data/DE_BWI3_regeneration_species.csv")
 
 species.final <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds")$species
 
-# All species that have good models n = 22
+# All species that have good models n = 29
 species.final. <- 
   species.tab %>% 
   filter(name.id %in% species.final)   
@@ -706,7 +706,7 @@ species.final. <-
 write.csv2(species.final., "output/Graphs/Regenerationdistribution_species.csv")
 
 
-# All species that have good models and a cultivation risk map n = 17
+# All species that have good models and a cultivation risk map n = 22
 species.final.cult <- 
   species.tab %>% 
   filter(name.id %in% species.final) %>% 
@@ -957,7 +957,7 @@ ggsave(filename = "output/Graphs/Regeneration_CIwidth.png",
        device=grDevices::png)
 
 
-# CI relative width ------------------------------------------------------
+### CI relative width ------------------------------------------------------
 # plot relative CI widths
 ggplot() +
   theme_void() +
