@@ -45,6 +45,16 @@ source("script/Model_functions.R")  # includes building Model variable table, Mo
 # )
 # spatial = c("x","y")
 
+# Variables of the full model
+source("script/Model_vars.R")
+
+resp.full = resp
+fixed.full = fixed
+random.full = random
+spatial.full = spatial 
+
+rm(resp, fixed, random, spatial) # to avoid any mistakes
+
 
 ## Specify explanatory and prediction variables
 resp = "count"
@@ -78,6 +88,9 @@ for(leftout in unique(varimp$Category)){
     
     ## Built model variables ---------------------------------------------------
     mv <- modelVariables(species = species)
+    mv %<>% # to avoid that more observations than the full set of variables
+      select(all_of(c(resp.full, fixed.full, random.full, spatial.full, "plotid", "clusterid"))) %>% 
+      drop_na()
     
     ## Run model ---------------------------------------------------------------
     try({
