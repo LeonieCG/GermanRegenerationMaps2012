@@ -77,7 +77,7 @@ sapling.map <- function(species.vect=species.vect, source, scale, scale.plot, ma
 }
 
 
-## Selected species -----------------------------------------------------------
+## Rest species -----------------------------------------------------------
 # Selected species
 species.sel = c("Picea.abies","Abies.alba", "Fagus.sylvatica")
 species.rest = species.final[!species.final %in% species.sel]
@@ -96,24 +96,23 @@ regstack.rest <- regstack %>%
   select(all_of(species.rest))
 
 quantile(terra::values(regstack.rest), 0.99, na.rm = TRUE)
-max(terra::values(regstack.rest), na.rm = TRUE)
+# max(terra::values(regstack.rest), na.rm = TRUE)
 
-sapling.map(species.vect = species.rest, text.size = 1.8,
-            scale = "Germany", scale.plot = germany, max.count = 580) # cut off color scale at 99% quantile
+sapling.map(species.vect = species.rest, text.size = 2,
+            scale = "Germany", scale.plot = germany, max.count = 899) # cut off color scale at 99% quantile
 
 # paste0("p.",sort(species.rest), collapse = " + ")
 
-p.Acer.campestre + p.Acer.platanoides + p.Alnus.glutinosa + p.Betula.pubescens + 
-  p.Carpinus.betulus + p.Castanea.sativa + p.Fraxinus.excelsior + p.Larix.kaempferi +
-  p.Picea.sitchensis + p.Pinus.mugo + p.Pinus.sylvestris + p.Populus.nigra + 
-  p.Populus.tremula + p.Populus.trichocarpa.x.maximoviczii + p.Prunus.avium + 
-  p.Pseudotsuga.menziesii + p.Pyrus.communis + p.Quercus.petraea + p.Quercus.robur +
-  p.Quercus.rubra + p.Robinia.pseudoacacia + p.Salix + p.Sorbus.aria + 
-  p.Sorbus.torminalis + p.Tilia + p.Ulmus +
-  plot_layout(ncol = 5, nrow = 6, guides = 'collect')
+p.Acer.campestre + p.Acer.platanoides + p.Acer.pseudoplatanus + p.Alnus.glutinosa +
+  p.Alnus.incana + p.Betula.pubescens + p.Castanea.sativa + p.Fraxinus.excelsior +
+  p.Larix.kaempferi + p.Malus.sylvestris + p.Picea.sitchensis + p.Pinus.mugo + p.Pinus.sylvestris +
+  p.Populus.tremula + p.Prunus.avium + p.Prunus.serotina + p.Pseudotsuga.menziesii + 
+  p.Quercus.petraea + p.Quercus.robur + p.Quercus.rubra + p.Robinia.pseudoacacia + 
+  p.Sorbus.aria + p.Taxus.baccata + p.Tilia + p.Ulmus +
+  plot_layout(ncol = 5, nrow = 5, guides = 'collect')
 
 ggsave(filename = "output/Graphs/Regeneration_Germany_rest.png",
-       height = 28, width = 20, units = "cm", dpi = 900,
+       height = 22, width = 20, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
 
@@ -125,7 +124,7 @@ regstack.sel <- regstack %>%
 max(terra::values(regstack.sel), na.rm = TRUE)
 
 sapling.map(species.vect = c("Picea.abies","Abies.alba", "Fagus.sylvatica"), # max count is 44073.406 of FS
-            text.size = 3, scale = "Germany", scale.plot = germany, max.count = 55900) 
+            text.size = 3, scale = "Germany", scale.plot = germany, max.count = 56075) 
 
 p.Fagus.sylvatica + p.Picea.abies + p.Abies.alba + plot_layout(guides = 'collect')
 
@@ -266,7 +265,7 @@ names(regtot) <- "count_tot_ha"
 regstack.regtot.rast = c(regstack, regtot)
 regstack.regtot.df = as.data.frame(regstack.regtot.rast, xy=T)
 
-sprich.df <- regstack.regtot.df%>%
+sprich.df <- regstack.regtot.df %>%
   mutate(across(.cols = -c(x,y,count_tot_ha), .fns = function(x) x/count_tot_ha)) %>%
   select(-c(count_tot_ha)) %>%
   mutate(across(.cols = -c(x,y), .fns = function(x) ifelse(x < 0.05, 0, 1))) %>%
@@ -422,78 +421,17 @@ sap.risk <- rast("output/Suitability/Regeneration_suitability.tif") %>%
 crs(sap.risk)==crs(bavaria)
 
 
-## Plot ----------------------------------------------------------------
-### Map ----------------------------------------------------------------
-p.cult <- 
-  ggplot()+
-  theme_void()+
-  geom_spatvector(data = bavaria, fill = "white", colour = "transparent")+
-  geom_spatraster(data = sap.risk) +
-  scale_fill_gradientn("",
-                       colours = cult.col(50),
-                       na.value = "transparent",
-                       limits = c(0, 100),
-                       guide = "none") +
-  geom_spatvector(data = bavaria, fill = "transparent", colour = "black", linewidth = 0.1)
-
-
-### Map histogram ------------------------------------------------------
-sap.risk.df.nona <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
-  select(c(cell, cultrisk_en, count_percent)) %>% 
-  pivot_wider(., names_from = cultrisk_en, values_from = count_percent) %>% 
-  select(c(higher,cell)) %>% 
-  drop_na()
-
-# Frequency
-h.cult <-
-  ggplot(sap.risk.df.nona, aes(x = higher)) +
-  theme_classic() +
-  geom_histogram(binwidth = 5,
-                 boundary = 0,#-0.5
-                 fill=cult.col(20), color="black") +
-  xlab("Proportion of regeneration of\nlow future suitability [%]") +
-  ylab("Area [10\u00B3 ha]")+
-  scale_y_continuous(limits=c(0,69e4),
-                     breaks = c(0,2e5,4e5,6e5),
-                     labels = c(0,200,400,600)) +
-  theme(plot.background = element_rect(fill = "transparent", color = NA),
-        axis.title = element_text(size = 8),
-        axis.text = element_text(size = 7)) +
-  annotate("segment", x = round(median(sap.risk.df.nona$higher, na.rm =T), digits=0), xend = 0, y = 65e4, yend = 65e4,
-           arrow = arrow(ends = "both", angle = 90, length = unit(.15,"cm")),
-           colour = "#1D457F") +
-  annotate("text", x = round(median(sap.risk.df.nona$higher, na.rm =T))+ 2, y = 65e4, 
-           hjust = 0, vjust = 0.5,
-           label = paste(strwrap(paste0("50% of forest area has <", round(median(sap.risk.df.nona$higher, na.rm =T), digits=1),"% of low future suitability"), 20), collapse = "\n"),
-           colour = "#1D457F",
-           size = 2) +
-  annotate("segment", x = 100, xend = 75, y = 2e5, yend = 2e5,
-           arrow = arrow(ends = "both", angle = 90, length = unit(.15,"cm")),
-           colour = "#1D457F")+
-  annotate("text", x = 100, y = 2.5e5, 
-           hjust = 1, vjust = -0.1,
-           label = paste(strwrap(paste0(round(table(sap.risk.df.nona$higher >= 75)[2]/dim(sap.risk.df.nona)[1]*100, digits=1),"% forest area has a high proportion of regeneration of low suitability (\u226575%)"), 25), collapse = "\n"),
-           colour = "#1D457F",
-           size = 2)
-
-layout <- c(
-  area(t = 0, b = 10, l = 0,  r = 13),
-  area(t = 0, b = 10, l = 14, r = 20))
-
-free(p.cult) + h.cult +
-  plot_layout(design = layout)+
-  plot_annotation(tag_levels = "A")
-
-ggsave(filename = paste0("output/Graphs/Suitability_regeneration.png"),
-       height = 7, width = 11, units = "cm", dpi = 900,
-       bg = "white",
-       device=grDevices::png)
-
 ## Stats-------------------------------------------------
 sap.risk.df <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
   select(c(cell, cultrisk_en, count_percent)) %>% 
   pivot_wider(., names_from = cultrisk_en, values_from = count_percent) %>% 
   select(c(higher,cell))
+
+sap.risk.df.nona <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
+  select(c(cell, cultrisk_en, count_percent)) %>% 
+  pivot_wider(., names_from = cultrisk_en, values_from = count_percent) %>% 
+  select(c(higher,cell)) %>% 
+  drop_na()
 
 # Mean
 higher.mean <- sap.risk.df %>% summarise(mean(higher,na.rm=T)) %>% 
@@ -509,6 +447,7 @@ risk.forestcover <- sap.risk %>%
 
 # How much area is affected by a high proportion at low future suitability?
 table(sap.risk.df.nona$higher >= 75)[2]
+table(sap.risk.df.nona$higher >= 75)[2]/length(sap.risk.df.nona$higher)*100
 
 # Do the cells with low high cultivation risk have also low numbers of regeneration
 quest <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
@@ -536,11 +475,7 @@ df_total %>%
 ## Cult risk ---------------------------------------------------------------
 sap.risk <- rast("output/Suitability/Regeneration_suitability.tif") %>% 
   select(higher)
-sap.risk.df.nona <- readRDS("output/Suitability/df_total_sum_cache.rds") %>% 
-  select(c(cell, cultrisk_en, count_percent)) %>% 
-  pivot_wider(., names_from = cultrisk_en, values_from = count_percent) %>% 
-  select(c(higher,cell)) %>% 
-  drop_na()
+
 
 # Map
 b.risk <-  
@@ -902,9 +837,7 @@ BWI_specdens %>%
   write.csv(., "output/Graphs/Tab_BWI_reg_summary.csv", row.names=F)
 
 
-## Species specific confidence interval maps ------------------------------
-
-
+## Confidence interval maps ------------------------------
 # during the prediction process the upper and lower limit of the 95%-confidence interval were computed
 
 # Function to process each species
@@ -930,32 +863,12 @@ names(widthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
 relwidthCI_stack <- rast(map(results, "relwidthCI"))
 names(relwidthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
 
-
-### CI width ----------------------------------------------
-
-# plot CI widths
-ggplot() +
-  theme_void() +
-  geom_spatraster(data = widthCI_stack) +
-  facet_wrap(~lyr) +
-  scale_fill_gradientn(
-    "CI width [ha⁻¹]",
-    na.value = "transparent",
-    colors = sunset(7),
-    space = "Lab" ,
-    trans = "log1p",
-    breaks = scales::breaks_log(n=6),
-    labels = scales::trans_format("log10", scales::math_format(10^.x)))+
-  guides(fill = guide_colourbar(barwidth = 1)) +
-  theme(legend.title = element_text(size = 8),
-        legend.text = element_text(size = 7)) +
-  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
-
-ggsave(filename = "output/Graphs/Regeneration_CIwidth.png",
-       height = 28, width = 26, units = "cm", dpi = 900,
-       bg = "white",
-       device=grDevices::png)
-
+# Create labels
+my_labels = species.tab %>% 
+  filter(name.id %in% names(relwidthCI_stack)) %>% 
+  pull(name.scient) %>% 
+  sort()
+names(relwidthCI_stack) <- my_labels
 
 ### CI relative width ------------------------------------------------------
 # plot relative CI widths
@@ -973,20 +886,14 @@ ggplot() +
     labels = scales::trans_format("log10", scales::math_format(10^.x))) +
   guides(fill = guide_colourbar(barwidth = 1)) +
   theme(legend.title = element_text(size = 8),
-        legend.text = element_text(size = 7)) +
+        legend.text = element_text(size = 7),
+        strip.text   = element_text(face = "italic")) +
   geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
 
 ggsave(filename = "output/Graphs/Regeneration_CIrelwidth.png",
        height = 28, width = 26, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
-
-# More ideas 
-# - RGB composite map (hard to read)
-# - overlay ci width e.g. opacity when it is very uncerartain
-# - zonal statistics (per geographic unit)
-# - correlation width covariates
-# - create ci width threshold when not to trust predictions...
 
 
 ## Basal area maps ---------------------------------------------------------
@@ -1036,11 +943,11 @@ for(species in sort(species.vect)){
 }
 
 
-pdf("output/Graphs/BA_plots.pdf", height = 7, width = 6)
-for(species in sort(species.vect)){
-  print(ba_plots[[species]])
-}
-dev.off()
+# pdf("output/Graphs/BA_plots.pdf", height = 7, width = 6)
+# for(species in sort(species.vect)){
+#   print(ba_plots[[species]])
+# }
+# dev.off()
 
 patchwork::wrap_plots(ba_plots, ncol = 7, nrow = 7, guides = 'collect')
 
@@ -1048,3 +955,64 @@ ggsave(filename = "output/Graphs/Basalarea_Germany.png",
        height = 28, width = 26, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
+
+
+# # Variable type importance ------------------------------------------------
+
+varimp <- read.csv2("data/Model_vars_varimp.csv") %>% 
+   filter(!(Category %in% c("Space", "Time")))# leave out these categories!
+
+var <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds") %>%
+  select(species, mae.relative.median, rsq.test.median) %>%
+  mutate(varimp = "all")names(var) <- c("species", paste0("all.", names(var)[2:length(var)]))
+
+for(i in unique(varimp$Category)){
+  try({cat.var <- read.csv2(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",i,"/Sapling_model_summary.csv")) %>%
+    select(species, mae.relative.median, rsq.test.median) %>%
+    # mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
+    #      rsq.rule = ifelse(rsq.test.median >= 0.1, "passed", "failed")) %>%
+    mutate(varimp = i)
+  # names(cat.var) <- c("species", paste0(i,".", names(cat.var)[2:length(cat.var)]))
+  var <- rbind(var, cat.var) #merge(var, cat.var, by= "species")
+  })
+  }
+print(var)
+
+# rsq = var %>% 
+#   select(species, rsq.test.median,varimp) %>% 
+#   pivot_wider(names_from = "varimp", values_from = "rsq.test.median")
+# 
+# mae = var %>% 
+#   select(species, mae.relative.median, varimp) %>% 
+#   pivot_wider(names_from = "varimp", values_from = "mae.relative.median")
+# 
+# 
+# plotval = function(dat,max,lab){
+#   plots <- list()
+#   for(i in unique(varimp$Category)){
+#     print(i)
+#     p <-
+#      ggplot()+
+#       theme_bw()+
+#       scale_x_continuous(expand=c(0, 0), limits=c(0,max)) + #limits=c(-1.1, 1)) +
+#       scale_y_continuous(expand=c(0, 0), limits=c(0,max)) + #limits=c(-1.1, 1)) +
+#       geom_hline(yintercept = 0) +
+#       geom_vline(xintercept = 0) +
+#       geom_vline(xintercept = 0.1, color =  "#1D457F") +
+#       geom_hline(yintercept = 0.1, color =  "#1D457F") +
+#       # xlab(bquote(.(lab)["all"])) +
+#       # ylab(bquote(.(lab)[.(i)])) +
+#       geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
+#                    aes(x = x, y = y), fill = "#B49629", alpha = 0.3) +
+#       geom_point(aes(x = dat[["all"]], y = dat[[i]]))
+#    #print(p)
+#    plots[[i]]<- p
+#   }
+#   return(plots)
+# }
+# dat = plotval(dat=rsq, max = 0.7, lab = "Median pseudo-R²")
+# patchwork::wrap_plots(plotval(mae, max = 1.5, lab = "Median relative MAE"))
+# #!!!! something does not work here!!!! it is plotting the same plot all over!
+# 
+# 
+
