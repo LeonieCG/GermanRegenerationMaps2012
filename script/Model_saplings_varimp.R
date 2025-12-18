@@ -5,9 +5,20 @@ start.script <- Sys.time()
 
 packages <- c("tidyr", "dplyr","magrittr", "terra", "mgcv", "gstat", "DHARMa",
               "mgcViz", "tidyterra", "parallel", "cowplot",
-              "modelr", "sf","blockCV", "automap", "stringr")
+              "modelr", "sf","blockCV", "automap", "stringr",
+              "parallel")
 # sapply(packages, FUN = install.packages, character.only = T)
 sapply(packages, FUN = library, character.only = T)
+
+
+# System setup for parallel -----------------------------------------------
+Sys.setenv(OMP_NUM_THREADS = "1",
+           MKL_NUM_THREADS = "1",
+           OPENBLAS_NUM_THREADS = "1",
+           RHPCBLAS_CTL = "1")
+
+# Choose how many cores to use for species-level parallelism
+mc_cores_default <- max(1, parallel::detectCores() - 1)
 
 
 # Load data ---------------------------------------------------------------
@@ -65,58 +76,102 @@ spatial = c("x","y") # xy coordinates of inspire-grid
 varimp <- read.csv2("data/Model_vars_varimp.csv") %>% 
   filter(!(Category %in% c("Space", "Time")))# leave out these categories!
 
-
-# Start leaving one variable category out ---------------------------------
-for(leftout in unique(varimp$Category)){
-  print(paste("left out:", leftout))
-  
-  # define fixed effects
-  fixed = varimp %>% 
-    filter(!(Category == leftout)) %>% # this category is ommited from fixed effects
-    pull(varid)
-  
-  # create folder structure for saving
-  dir.create(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",leftout,"/"))
-  for(species in species.final) {dir.create(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",leftout,"/",species))}
+# categories that are leftout
+leftouts <- unique(varimp$Category)
 
 
-  # Start Model ---------------------------------------------------------------
+# ---- Main loop over leftout (serial) -------------------------------------
+for (leftout in leftouts) {
+  message(sprintf("left out: %s", leftout))
   
-  ## Iterate Species -----------------------------------------------------------
-  for(species in species.final) {
-    print(species)
-    
-    ## Built model variables ---------------------------------------------------
-    mv <- modelVariables(species = species)
-    mv %<>% # to avoid that more observations than the full set of variables
-      select(all_of(c(resp.full, fixed.full, random.full, spatial.full, "plotid", "clusterid"))) %>% 
-      drop_na()
-    
-    ## Run model ---------------------------------------------------------------
-    try({
-      fit <-  model.fit(resp = resp,
-                        fixed = fixed,
-                        fixedfact = NULL,
-                        random = random,
-                        spatial = spatial,
-                        offset = NULL,
-                        exclude = "yearmonth",
-                        fam = nb,
-                        s.k = 10,
-                        s.bs = "cs",
-                        spat.which = "tensor",
-                        spat.bs = "cs", # is faster than ts
-                        spat.k= "c(25,50)", 
-                        select.var = FALSE,
-                        bam = TRUE,
-                        Data = mv,
-                        CV = "blockcv",
-                        blockcv.dr = 300000, # 300000 gives 11 blocks for whole germany
-                        blockcv.k = 10)
-      saveRDS(fit, paste0("output/Fits/Sapling/h50d7_Germany_varimp_",leftout,"/",species,"/",species,"_fit.rds"))# save in directory
-    })
+  # define fixed effects excluding current category
+  fixed <- varimp %>%
+    dplyr::filter(!(Category == leftout)) %>%
+    dplyr::pull(varid)
+  
+  # create folder structure for this leftout (pre-create to avoid races)
+  out_root <- file.path("output", "Fits", "Sapling", paste0("h50d7_Germany_varimp_", leftout))
+  dir.create(out_root, recursive = TRUE, showWarnings = FALSE)
+  for (species in species.final) {
+    dir.create(file.path(out_root, species), recursive = TRUE, showWarnings = FALSE)
   }
   
+  # Decide cores per leftout/species batch (cap by number of species to save RAM)
+  mc_cores <- min(length(species.final), mc_cores_default)
+  
+  # Reproducibility across forks (important if CV/randomness is used)
+  set.seed(84)
+  
+  # ---- Parallelize over species ------------------------------------------
+  results <- mclapply(
+    X = species.final,
+    FUN = function(species) {
+      # Worker-side progress
+      message(sprintf("[pid=%s] species=%s | leftout=%s", Sys.getpid(), species, leftout))
+      
+      # Build model variables
+      mv <- try({
+        mv0 <- modelVariables(species = species)
+        mv0 %>%
+          dplyr::select(dplyr::all_of(c(
+            resp.full, fixed.full, random.full, spatial.full,
+            "plotid", "clusterid"
+          ))) %>%
+          tidyr::drop_na()
+      }, silent = TRUE)
+      
+      if (inherits(mv, "try-error")) {
+        warning(sprintf("modelVariables/select failed for species=%s; skipping.", species))
+        return(list(species = species, status = "modelVariables_failed"))
+      }
+      
+      # Fit the model (robust error handling)
+      fit <- try({
+        model.fit(resp = resp,
+                  fixed = fixed,
+                  fixedfact = NULL,
+                  random = random,
+                  spatial = spatial,
+                  offset = NULL,
+                  exclude = "yearmonth",
+                  fam = nb,
+                  s.k = 10,
+                  s.bs = "cs",
+                  spat.which = "tensor",
+                  spat.bs = "cs", # is faster than ts
+                  spat.k= "c(25,50)", 
+                  select.var = FALSE,
+                  bam = TRUE,
+                  Data = mv,
+                  CV = "blockcv",
+                  blockcv.dr = 300000, # 300000 gives 11 blocks for whole germany
+                  blockcv.k = 10
+        )
+      }, silent = TRUE)
+      
+      if (inherits(fit, "try-error")) {
+        warning(sprintf("model.fit failed for leftout=%s species=%s; skipping save.", leftout, species))
+        return(list(species = species, status = "model_fit_failed"))
+      }
+      
+      # Save result
+      save_path <- file.path(out_root, species, paste0(species, "_fit.rds"))
+      try(saveRDS(fit, save_path), silent = TRUE)
+      
+      # Free memory in the worker
+      rm(fit, mv); gc()
+      
+      list(species = species, status = "ok")
+    },
+    mc.cores = mc_cores,
+    mc.preschedule = FALSE,  # better load balancing when species vary in duration
+    mc.set.seed = TRUE       # independent RNG streams derived from set.seed above
+  )
+  
+  # Optional: inspect per-leftout results summary
+  ok_count <- sum(vapply(results, function(x) identical(x$status, "ok"), logical(1)))
+  message(sprintf("leftout=%s done. %d/%d species completed.",
+                  leftout, ok_count, length(species.final)))
   
   # Model checks-------------------------------------------------------------
   
