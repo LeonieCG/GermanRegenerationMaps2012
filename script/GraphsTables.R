@@ -864,20 +864,26 @@ relwidthCI_stack <- rast(map(results, "relwidthCI"))
 names(relwidthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
 
 # Create labels
+
+
+### CI relative width ------------------------------------------------------
+# plot relative CI widths
 my_labels = species.tab %>% 
   filter(name.id %in% names(relwidthCI_stack)) %>% 
   pull(name.scient) %>% 
   sort()
-names(relwidthCI_stack) <- my_labels
 
-### CI relative width ------------------------------------------------------
-# plot relative CI widths
+lab_df <- data.frame(lyr   = names(relwidthCI_stack),
+                     label = my_labels,
+                     x = -Inf,
+                     y =  Inf)
+
 ggplot() +
   theme_void() +
   geom_spatraster(data = relwidthCI_stack) +
-  facet_wrap(~lyr) +
+  facet_wrap(~lyr, ncol = 5, nrow = 6) +
   scale_fill_gradientn(
-    "Relative CI width [ha⁻¹]",
+    "Relative 95% CI\nwidth [ha⁻¹]",
     na.value = "transparent",
     colors = sunset(7),
     space = "Lab",
@@ -887,11 +893,18 @@ ggplot() +
   guides(fill = guide_colourbar(barwidth = 1)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7),
-        strip.text   = element_text(face = "italic")) +
-  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
+        strip.text   = element_blank()) +
+  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)+
+  geom_text(data = lab_df,
+            mapping = aes(x = x, y = y, label = label),
+            inherit.aes = FALSE,
+            hjust = -0.1, 
+            vjust =  1,  
+            size  = 2,
+            fontface = "bold.italic")
 
-ggsave(filename = "output/Graphs/Regeneration_CIrelwidth.png",
-       height = 28, width = 26, units = "cm", dpi = 900,
+ggsave(filename = "output/Graphs/S_Regeneration_CIrelwidth.png",
+       height = 27, width = 20, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
 
