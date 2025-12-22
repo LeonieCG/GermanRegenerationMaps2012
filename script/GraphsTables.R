@@ -840,31 +840,31 @@ BWI_specdens %>%
 ## Confidence interval maps ------------------------------
 # during the prediction process the upper and lower limit of the 95%-confidence interval were computed
 
+relwidth.ls <- list()
 # Function to process each species
-process_species <- function(species) {
+for(species in sort(species.final)) {
+  print(species)
   r <- rast(paste0("output/Predictions/Regeneration_", species, ".tif"))
-  names(r)[1] <- "mean"   # Rename the main prediction layer
+  names(r)[1] <- "value"   # Rename the main prediction layer
+  
+  # global median
+  med = global(r$value, fun = median, na.rm = TRUE)[1,1] 
   
   # Calculate CI width and relative width
-  r$widthCI <- r$upperCI - r$lowerCI
-  r$relwidthCI <- r$widthCI/r$mean
+  r$widthCI = r$upperCI - r$lowerCI
+  r$relwidthCI = r$widthCI/med 
   
-    list(widthCI = r$widthCI, relwidthCI = r$relwidthCI)# Return the two layers
+  final <-  r$relwidthCI
+  names(final)[1]<- species
+  
+  relwidth.ls[[species]] <- final
 }
 
-# Apply the function to all species
-results <- map(sort(species.final), process_species)
+relwidthCI_stack = rast(relwidth.ls)
+writeRaster(relwidthCI_stack, "output/Graphs/relwidthCI_stack.tif", overwrite = T)
+rm(c(relwidthCI_stack,relwidth.ls))
 
-# Combine all widthCI layers
-widthCI_stack <- rast(map(results, "widthCI"))
-names(widthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
-
-# Combine all relwidthCI layers
-relwidthCI_stack <- rast(map(results, "relwidthCI"))
-names(relwidthCI_stack) <- str_remove(varnames(widthCI_stack), "^Regeneration_")
-
-# Create labels
-
+relwidthCI_stack = rast("output/Graphs/relwidthCI_stack.tif")
 
 ### CI relative width ------------------------------------------------------
 # plot relative CI widths
@@ -909,123 +909,98 @@ ggsave(filename = "output/Graphs/S_Regeneration_CIrelwidth.png",
        device=grDevices::png)
 
 
-## Basal area maps ---------------------------------------------------------
-# Visualising predicted species basal area distribution Maps
-sunset = colorRampPalette(c("#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#C36377FF", "#61599DFF", "#1D457F", "#191F40FF", "black"))
-
-# create multilayer Raster
-bastack <- list()
-for (species in species.vect){
-  bastack[[species]] <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"))
-}
-bastack <- rast(bastack) # Turn list into multilayer
-
-max(bastack, na.rm = T)
-
-# 99% Quantile
-quantile(terra::values(bastack), 0.99, na.rm = TRUE)# of all regeneration maps
-
-# Plot
-ba_plots = list()
-
-for(species in sort(species.vect)){
-  print(species)
-  
-  ba = bastack %>% 
-    select(species)
-
-  p <-
-    ggplot()+
-    theme_void()+
-    geom_spatraster(data = ba) +
-    scale_fill_gradientn(
-      "Basal area [m² ha\u207B\u00B9]",
-      na.value = "transparent",
-      colors = sunset(7),
-      space = "Lab",
-      trans = "log1p",
-      breaks = c(0,1,10,100),
-      labels = scales::comma(c(0,1,10,100)),
-      limits = c(0, 45)) + # use global maximum for upper limit
-    guides(fill = guide_colourbar(barwidth = 1))+
-    theme(legend.title = element_text(size = 8),
-          legend.text = element_text(size = 7))+
-    geom_spatvector(data = germany , fill = "transparent", colour = "black", linewidth = 0.1)+
-    annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
-  ba_plots[[species]] <- p
-}
-
-
-# pdf("output/Graphs/BA_plots.pdf", height = 7, width = 6)
-# for(species in sort(species.vect)){
-#   print(ba_plots[[species]])
+# ## Basal area maps ---------------------------------------------------------
+# # Visualising predicted species basal area distribution Maps
+# sunset = colorRampPalette(c("#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#C36377FF", "#61599DFF", "#1D457F", "#191F40FF", "black"))
+# 
+# # create multilayer Raster
+# bastack <- list()
+# for (species in species.vect){
+#   bastack[[species]] <- rast(paste0("data/Predictor_100m_Germany/wzp12_ba_ha_species_",species,".tif"))
 # }
-# dev.off()
-
-patchwork::wrap_plots(ba_plots, ncol = 7, nrow = 7, guides = 'collect')
-
-ggsave(filename = "output/Graphs/Basalarea_Germany.png",
-       height = 28, width = 26, units = "cm", dpi = 900,
-       bg = "white",
-       device=grDevices::png)
+# bastack <- rast(bastack) # Turn list into multilayer
+# 
+# max(bastack, na.rm = T)
+# 
+# # 99% Quantile
+# quantile(terra::values(bastack), 0.99, na.rm = TRUE)# of all regeneration maps
+# 
+# # Plot
+# ba_plots = list()
+# 
+# for(species in sort(species.vect)){
+#   print(species)
+#   
+#   ba = bastack %>% 
+#     select(species)
+# 
+#   p <-
+#     ggplot()+
+#     theme_void()+
+#     geom_spatraster(data = ba) +
+#     scale_fill_gradientn(
+#       "Basal area [m² ha\u207B\u00B9]",
+#       na.value = "transparent",
+#       colors = sunset(7),
+#       space = "Lab",
+#       trans = "log1p",
+#       breaks = c(0,1,10,100),
+#       labels = scales::comma(c(0,1,10,100)),
+#       limits = c(0, 45)) + # use global maximum for upper limit
+#     guides(fill = guide_colourbar(barwidth = 1))+
+#     theme(legend.title = element_text(size = 8),
+#           legend.text = element_text(size = 7))+
+#     geom_spatvector(data = germany , fill = "transparent", colour = "black", linewidth = 0.1)+
+#     annotate("text", x = -Inf, y = Inf, hjust=-0.1, vjust = 1, size = 3, label = paste(species.tab[species.tab$name.id==species,]$name.scient), fontface = 'bold.italic')
+#   ba_plots[[species]] <- p
+# }
+# 
+# 
+# # pdf("output/Graphs/BA_plots.pdf", height = 7, width = 6)
+# # for(species in sort(species.vect)){
+# #   print(ba_plots[[species]])
+# # }
+# # dev.off()
+# 
+# patchwork::wrap_plots(ba_plots, ncol = 7, nrow = 7, guides = 'collect')
+# 
+# ggsave(filename = "output/Graphs/Basalarea_Germany.png",
+#        height = 28, width = 26, units = "cm", dpi = 900,
+#        bg = "white",
+#        device=grDevices::png)
 
 
 # # Variable type importance ------------------------------------------------
-
 varimp <- read.csv2("data/Model_vars_varimp.csv") %>% 
    filter(!(Category %in% c("Space", "Time")))# leave out these categories!
 
-var <- readRDS("output/Fits/Sapling/h50d7_Germany/Sapling_model_final.rds") %>%
-  select(species, mae.relative.median, rsq.test.median) %>%
-  mutate(varimp = "all")names(var) <- c("species", paste0("all.", names(var)[2:length(var)]))
+full.val <- read.csv2("output/Fits/Sapling/h50d7_Germany/Sapling_rsq_summary.csv", row.names = "X") %>% 
+  # filter(varcat == "full") %>% 
+  select(-data.n)
 
-for(i in unique(varimp$Category)){
-  try({cat.var <- read.csv2(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",i,"/Sapling_model_summary.csv")) %>%
-    select(species, mae.relative.median, rsq.test.median) %>%
-    # mutate(mae.rule = ifelse(mae.relative.median <= 2, "passed", "failed"),
-    #      rsq.rule = ifelse(rsq.test.median >= 0.1, "passed", "failed")) %>%
-    mutate(varimp = i)
-  # names(cat.var) <- c("species", paste0(i,".", names(cat.var)[2:length(cat.var)]))
-  var <- rbind(var, cat.var) #merge(var, cat.var, by= "species")
+
+val <- list()
+for(leftout in unique(varimp$Category)){
+  try({
+    val[[leftout]]<- read.csv2(paste0("output/Fits/Sapling/h50d7_Germany_varimp_",leftout,"/Sapling_model_summary.csv"))
   })
-  }
-print(var)
+}
 
-# rsq = var %>% 
-#   select(species, rsq.test.median,varimp) %>% 
-#   pivot_wider(names_from = "varimp", values_from = "rsq.test.median")
-# 
-# mae = var %>% 
-#   select(species, mae.relative.median, varimp) %>% 
-#   pivot_wider(names_from = "varimp", values_from = "mae.relative.median")
-# 
-# 
-# plotval = function(dat,max,lab){
-#   plots <- list()
-#   for(i in unique(varimp$Category)){
-#     print(i)
-#     p <-
-#      ggplot()+
-#       theme_bw()+
-#       scale_x_continuous(expand=c(0, 0), limits=c(0,max)) + #limits=c(-1.1, 1)) +
-#       scale_y_continuous(expand=c(0, 0), limits=c(0,max)) + #limits=c(-1.1, 1)) +
-#       geom_hline(yintercept = 0) +
-#       geom_vline(xintercept = 0) +
-#       geom_vline(xintercept = 0.1, color =  "#1D457F") +
-#       geom_hline(yintercept = 0.1, color =  "#1D457F") +
-#       # xlab(bquote(.(lab)["all"])) +
-#       # ylab(bquote(.(lab)[.(i)])) +
-#       geom_polygon(data = data.frame(x =c(-Inf, -Inf, Inf), y= c(-Inf, Inf, Inf)),
-#                    aes(x = x, y = y), fill = "#B49629", alpha = 0.3) +
-#       geom_point(aes(x = dat[["all"]], y = dat[[i]]))
-#    #print(p)
-#    plots[[i]]<- p
-#   }
-#   return(plots)
-# }
-# dat = plotval(dat=rsq, max = 0.7, lab = "Median pseudo-R²")
-# patchwork::wrap_plots(plotval(mae, max = 1.5, lab = "Median relative MAE"))
-# #!!!! something does not work here!!!! it is plotting the same plot all over!
-# 
-# 
+val %<>% 
+  do.call(rbind,.) %>% 
+  select(-data.n) %>% 
+  merge(.,full.val, by = "species") %>%
+  rename(rsq.cat = rsq.x,
+         varcat = varcat.x,
+         rsq.full = rsq.y,
+         varcat.full = varcat.y) %>% 
+  mutate(rsq.diff = rsq.full-rsq.cat,
+         rsq.rel = rsq.diff/rsq.full*100)
 
+val.final <- val %>% 
+  group_by(varcat) %>% 
+  summarise(#median.rsq.diff = median(rsq.diff,na.rm=T),
+            median.rel.diff = median(rsq.rel, na.rm=T),
+            sd.rel.diff = sd(rsq.rel, na.rm=T))
+
+write.csv(val.final, "output/Graphs/R_varimp.csv", row.names=F)
