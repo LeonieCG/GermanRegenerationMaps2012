@@ -246,9 +246,9 @@ ggsave(filename = "output/Graphs/S_Density.png",
 mean(regtot.df$count_tot_ha,na.rm=T)
 
 # how much area is affected by < 1000 , 1000-2000, 20000
-dim(regtot.df[regtot.df$count_tot_ha < 1000,])[1]/length(regtot.df$count_tot_ha)*100
-dim(regtot.df[regtot.df$count_tot_ha >= 1000 & regtot.df$count_tot_ha < 2000,])[1]/length(regtot.df$count_tot_ha)*100
 dim(regtot.df[regtot.df$count_tot_ha >= 2000,])[1]/length(regtot.df$count_tot_ha)*100
+dim(regtot.df[regtot.df$count_tot_ha >= 1000 & regtot.df$count_tot_ha < 2000,])[1]/length(regtot.df$count_tot_ha)*100
+dim(regtot.df[regtot.df$count_tot_ha < 1000,])[1]/length(regtot.df$count_tot_ha)*100
 
 ## Table mean density per species --------------------------------------------------
 reg.stats = global(c(regstack,regtot), c("mean","sd"), na.rm=TRUE)
@@ -476,13 +476,12 @@ df_total %>%
 sap.risk <- rast("output/Suitability/Regeneration_suitability.tif") %>% 
   select(higher)
 
-
 # Map
 b.risk <-  
   ggplot()+
   theme_void()+
   geom_spatraster(data = sap.risk) +
-  scale_fill_gradientn("Proportion of\nregeneration at\nhigh cultivation risk\n[%]",
+  scale_fill_gradientn("Proportion of\nregeneration of\nlow future suitability\n[%]",
                        colours = cult.col(50),
                        na.value = "transparent",
                        limits = c(0, 100)) +
@@ -581,7 +580,6 @@ ggsave(filename = paste0("output/Graphs/Regeneration_indicator_Bavaria.png"),
        height = 13, width = 17, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
-
 
 
 # TABLES ------------------------------------------------------------------
