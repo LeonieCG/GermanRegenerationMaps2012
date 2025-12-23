@@ -200,7 +200,7 @@ p.tot.cont <-
     space = "Lab",
     trans = "log1p",
     breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),#Sapling
-    labels = scales::trans_format("log10", scales::math_format(10^.x)),#Sapling
+    labels = c("0", parse(text = paste0("10^", seq(1, length(c(0,10,100,1000,10000, 100000, 1e6,1e7)) - 1)))),#Sapling
     limits = c(0, global(regtot$count_tot_ha, max, na.rm=T)$max))+
   guides(fill = guide_colourbar(barwidth = 1))+
   theme(legend.title = element_text(size = 8),
@@ -220,12 +220,12 @@ p.tot.cont.hist <-
   scale_x_continuous(trans = "log1p",
                      limits = c(0, NA),
                      breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),#Sapling
-                     labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+                     labels = c("0", parse(text = paste0("10^", seq(1, length(c(0,10,100,1000,10000, 100000, 1e6,1e7)) - 1))))) +
   scale_fill_gradientn(colors = sunset(7),
                        trans = "log1p",
                        limits = c(0, global(regtot$count_tot_ha, max, na.rm=T)$max),
                        breaks = c(0,10,100,1000,10000, 100000, 1e6,1e7),#Sapling
-                       labels = scales::trans_format("log10", scales::math_format(10^.x)),
+                       labels = c("0", parse(text = paste0("10^", seq(1, length(c(0,10,100,1000,10000, 100000, 1e6,1e7)) - 1)))),
                        guide = "none")
 layout <- c(
   area(t = 0, b = 10, l = 0,  r = 12),
@@ -846,11 +846,11 @@ for(species in sort(species.final)) {
   names(r)[1] <- "value"   # Rename the main prediction layer
   
   # global median
-  med = global(r$value, fun = median, na.rm = TRUE)[1,1] 
+  #med = global(r$value, fun = median, na.rm = TRUE)[1,1] 
   
   # Calculate CI width and relative width
   r$widthCI = r$upperCI - r$lowerCI
-  r$relwidthCI = r$widthCI/med 
+  r$relwidthCI = r$widthCI/r$value
   
   final <-  r$relwidthCI
   names(final)[1]<- species
@@ -859,10 +859,10 @@ for(species in sort(species.final)) {
 }
 
 relwidthCI_stack = rast(relwidth.ls)
-writeRaster(relwidthCI_stack, "output/Graphs/relwidthCI_stack.tif", overwrite = T)
-rm(c(relwidthCI_stack,relwidth.ls))
+# writeRaster(relwidthCI_stack, "output/Graphs/relwidthCI_stack.tif", overwrite = T)
+# rm(c(relwidthCI_stack,relwidth.ls))
 
-relwidthCI_stack = rast("output/Graphs/relwidthCI_stack.tif")
+# relwidthCI_stack = rast("output/Graphs/relwidthCI_stack.tif")
 
 ### CI relative width ------------------------------------------------------
 # plot relative CI widths
