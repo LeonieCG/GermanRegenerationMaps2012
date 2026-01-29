@@ -10,6 +10,7 @@ data/
 output/
 repo/
 GEE/
-# script/Model_saplings_varimp.R
-# script/Graphs_conceptual.R
-# script/Revision_obspredcomp.R
+
+script/Model_saplings_varimp.R
+script/Graphs_conceptual.R
+script/Revision_obspredcomp.R
