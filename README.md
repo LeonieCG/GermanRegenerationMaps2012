@@ -21,7 +21,7 @@ Lines highlighted in gray are other datasets mentioned in the R-script workflow 
 
 ## References
 Preprint on EcoEvoRxiv: https://doi.org/10.32942/X2GS8X <br />
-Data on Zenodo: https://doi.org/10.5281/zenodo.15550864 <br />
-Code on Zenodo: https://doi.org/10.5281/zenodo.15552196 <br />
+Data on Zenodo: https://doi.org/10.5281/zenodo.15550863 <br />
+Code on Zenodo: https://doi.org/10.5281/zenodo.15552195 <br />
 Code on GitHub: https://github.com/LeonieCG/GermanRegenerationMaps2012 <br />
 Map display on Google Earth Engine: https://easi.users.earthengine.app/view/regeneration-maps <br />
