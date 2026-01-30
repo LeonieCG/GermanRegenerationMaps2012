@@ -116,6 +116,7 @@ ggsave(filename = "output/Graphs/Regeneration_Germany_rest.png",
        bg = "white",
        device=grDevices::png)
 
+
 ## Selected species --------------------------------------------------------
 # Regstack of selected species
 regstack.sel <- regstack %>%
@@ -132,6 +133,11 @@ ggsave(filename = "output/Graphs/Regeneration_Germany_AA_FS_PA.png",
        height = 7, width = 17, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
+
+ggsave(filename = "output/Graphs/Figure2.pdf",
+       height = 7, width = 18, units = "cm", dpi = 900,
+       bg = "white",
+       device=grDevices::cairo_pdf)
 
 
 # TOTAL DENSITY --------------------------------------------------------------------
@@ -186,6 +192,12 @@ ggsave(plot = p.tot.class,
        height = 8, width = 8, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
+
+ggsave(plot = p.tot.class,
+       filename = paste0("output/Graphs/Figure3.pdf"),
+       height = 8, width = 8, units = "cm", dpi = 900,
+       bg = "white",
+       device=grDevices::cairo_pdf)
 
 
 ### Continuous --------------------------------------------------------------
@@ -340,6 +352,12 @@ ggsave(filename = "output/Graphs/Speciesrichness.png",
        height = 8, width = 11, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
+
+ggsave(filename = "output/Graphs/Figure4.pdf",
+       height = 8, width = 11, units = "cm", dpi = 900,
+       bg = "white",
+       device=grDevices::cairo_pdf)
+
 
 ### Continuous --------------------------------------------------------------
 p.div.cont <- 
@@ -580,6 +598,11 @@ ggsave(filename = paste0("output/Graphs/Regeneration_indicator_Bavaria.png"),
        height = 13, width = 17, units = "cm", dpi = 900,
        bg = "white",
        device=grDevices::png)
+
+ggsave(filename = paste0("output/Graphs/Figure5.pdf"),
+       height = 13.5, width = 18, units = "cm", dpi = 900,
+       bg = "white",
+       device=grDevices::cairo_pdf)
 
 
 # TABLES ------------------------------------------------------------------
