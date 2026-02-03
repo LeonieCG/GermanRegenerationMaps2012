@@ -20,7 +20,7 @@ The table displays the predictor variables their abbrevation, explanation, unit,
 Lines highlighted in gray are other datasets mentioned in the R-script workflow graph above. For full data reference please see preprint (link below).
 
 ## References
-Preprint on EcoEvoRxiv: https://doi.org/10.32942/X2GS8X <br />
+Manuscript accepted in Journal of Applied Ecology
 Data on Zenodo: https://doi.org/10.5281/zenodo.15550863 <br />
 Code on Zenodo: https://doi.org/10.5281/zenodo.15552195 <br />
 Code on GitHub: https://github.com/LeonieCG/GermanRegenerationMaps2012 <br />
