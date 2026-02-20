@@ -6,6 +6,11 @@ packages <- c("dplyr","tidyr","magrittr", "terra", "tidyterra","viridis", "ggplo
 sapply(packages, FUN = library, character.only = T)
 
 
+# Font --------------------------------------------------------------------
+library(showtext)
+font_add_google("Inter", "inter")
+showtext_auto()
+
 # data --------------------------------------------------------------------
 dt.f <- rast("data/ForestArea_germany_100m.tif")
 bay.f <- rast("data/ForestArea_bavaria_100m.tif")
@@ -134,10 +139,17 @@ ggsave(filename = "output/Graphs/Regeneration_Germany_AA_FS_PA.png",
        bg = "white",
        device=grDevices::png)
 
-ggsave(filename = "output/Graphs/Figure2.pdf",
+# pdf
+fag <- p.Fagus.sylvatica + theme(text = element_text(family = "inter"))
+pic <- p.Picea.abies     + theme(text = element_text(family = "inter"))
+ab <- p.Abies.alba      + theme(text = element_text(family = "inter"))
+ 
+final= fag + pic + ab +  plot_layout(guides = 'collect')
+
+ggsave(final, filename = "output/Graphs/Figure2.pdf",
        height = 7, width = 18, units = "cm", dpi = 900,
        bg = "white",
-       device=grDevices::cairo_pdf)
+       device = "pdf")
 
 
 # TOTAL DENSITY --------------------------------------------------------------------
@@ -162,8 +174,8 @@ regtot$class <- regtot %>% classify(c(0,1000,2000,Inf),right = F)
 
 regtot.df = as.data.frame(regtot)
 
-saveRDS(regtot.df, "output/Graphs/Density.rds")
-writeRaster(regtot, "output/Graphs/Density.tif", overwrite=TRUE)
+# saveRDS(regtot.df, "output/Graphs/Density.rds")
+# writeRaster(regtot, "output/Graphs/Density.tif", overwrite=TRUE)
 
 
 regtot.df <- readRDS("output/Graphs/Density.rds") 
@@ -172,32 +184,26 @@ regtot <- rast("output/Graphs/Density.tif")
 ## Plot --------------------------------------------------------------------
 
 ### Class -------------------------------------------------------------------
-p.tot.class <- 
+#p.tot.class <- 
   ggplot() + 
   theme_void() +
   geom_spatraster(data = regtot$class)+
   scale_fill_manual(
-    "Regeneration\ndensity [ha\u207B\u00B9]",
+    #"Regeneration\ndensity [ha\u207B\u00B9]",
     na.translate = FALSE,
     labels = c("0-1,000", "1,000-2,000", "\u22652,000"),
     values = c("#9A3F07","#F2AF4AFF","grey90"),
     guide = guide_legend(reverse = TRUE)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7)) +
-  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
-
-# Save
-ggsave(plot = p.tot.class,
-       filename = paste0("output/Graphs/Density.png"),
-       height = 8, width = 8, units = "cm", dpi = 900,
-       bg = "white",
-       device=grDevices::png)
+  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)# +
+ # theme(text = element_text(family = "inter"))
 
 ggsave(plot = p.tot.class,
        filename = paste0("output/Graphs/Figure3.pdf"),
-       height = 8, width = 8, units = "cm", dpi = 900,
+       height = 8, width = 9, units = "cm", dpi = 900,
        bg = "white",
-       device=grDevices::cairo_pdf)
+       device = "pdf")
 
 
 ### Continuous --------------------------------------------------------------
@@ -289,8 +295,8 @@ sprich.rast <-  as_spatraster(sprich.df, xycols = 1:2, crs = crs(regstack))
 sprich.rast$class<- sprich.rast %>%
   classify(c(0,2,4,Inf)) # 0-2 low, 3-4 intermediate, >=5 enough
 
-saveRDS(as.data.frame(sprich.rast), "output/Graphs/Speciesrichness.rds")
-writeRaster(sprich.rast, "output/Graphs/Speciesrichness.tif", overwrite=TRUE)
+# saveRDS(as.data.frame(sprich.rast), "output/Graphs/Speciesrichness.rds")
+# writeRaster(sprich.rast, "output/Graphs/Speciesrichness.tif", overwrite=TRUE)
 
 sprich.df <- readRDS("output/Graphs/Speciesrichness.rds")
 sprich.rast <- rast("output/Graphs/Speciesrichness.tif")
@@ -309,7 +315,9 @@ p.div <-
     # labels = c("0-3", "4", "5-11",""),
     values = c("#9A3F07","#F2AF4AFF","grey90"),
     guide = 'none') +
-  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)
+  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)+ 
+  theme(text = element_text(family = "inter"))
+
 
 p.div.hist <-
   ggplot(sprich.df, aes(x = sprich, fill =..x..)) +
@@ -338,7 +346,8 @@ p.div.hist <-
            hjust = 0, vjust = 0.5,
            label = paste(strwrap(paste0(round(table(sprich.df$sprich <= 2)[2]/dim(sprich.df)[1]*100, digits = 1),"% of the forest area has a tree species richness \u22642"), 30), collapse = "\n"),
            colour = "#1D457F",
-           size = 2)
+           size = 2) + 
+  theme(text = element_text(family = "inter"))
 
 layout <- c(
       area(t = 0, b = 10, l = 0,  r = 12),
@@ -347,16 +356,11 @@ layout <- c(
 free(p.div) + p.div.hist + 
   plot_layout(design = layout) +
   plot_annotation(tag_levels = "A")
-  
-ggsave(filename = "output/Graphs/Speciesrichness.png",
-       height = 8, width = 11, units = "cm", dpi = 900,
-       bg = "white",
-       device=grDevices::png)
 
 ggsave(filename = "output/Graphs/Figure4.pdf",
        height = 8, width = 11, units = "cm", dpi = 900,
        bg = "white",
-       device=grDevices::cairo_pdf)
+       device="pdf")
 
 
 ### Continuous --------------------------------------------------------------
@@ -505,7 +509,8 @@ b.risk <-
                        limits = c(0, 100)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7)) +
-  geom_spatvector(data = bavaria, fill = "transparent", colour = "black", linewidth = 0.1)
+  geom_spatvector(data = bavaria, fill = "transparent", colour = "black", linewidth = 0.1) +
+  theme(text = element_text(family = "inter"))
 
 # Histogram
 b.risk.h <-
@@ -537,7 +542,8 @@ b.risk.h <-
            hjust = 1, vjust = -0.1,
            label = paste(strwrap(paste0(round(table(sap.risk.df.nona$higher >= 75)[2]/dim(sap.risk.df.nona)[1]*100, digits=1),"% forest area has a high proportion of regeneration of low suitability (\u226575%)"), 30), collapse = "\n"),
            colour = "#1D457F",
-           size = 2)
+           size = 2)+
+  theme(text = element_text(family = "inter"))
 
 ## Total Density ---------------------------------------------------------------------
 regtot.bay <- rast("output/Graphs/Density.tif") %>% 
@@ -559,7 +565,8 @@ b.tot <-
     guide = guide_legend(reverse = TRUE)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7)) +
-  geom_spatvector(data = bavaria, fill = "transparent", colour = "black", linewidth = 0.1)
+  geom_spatvector(data = bavaria, fill = "transparent", colour = "black", linewidth = 0.1) +
+  theme(text = element_text(family = "inter"))
 
 regtot.bay.df <- as.data.frame(regtot.bay)
 length(regtot.bay.df[regtot.bay.df$count_tot_ha <= 1000,]$count_tot_ha)/length(regtot.bay.df$count_tot_ha)*100
@@ -583,7 +590,8 @@ b.sprich <-
       guide = guide_legend(reverse = TRUE)) +
   theme(legend.title = element_text(size = 8),
         legend.text = element_text(size = 7)) +
-  geom_spatvector(data = bavaria, fill = "transparent", colour = "black", linewidth = 0.1)
+  geom_spatvector(data = bavaria, fill = "transparent", colour = "black", linewidth = 0.1) +
+  theme(text = element_text(family = "inter"))
 
 # Stats
 sprich.bay.df <- as.data.frame(sprich.bay)
@@ -594,15 +602,10 @@ b.tot + b.sprich + b.risk + b.risk.h +
   plot_layout(ncol = 2)+
   plot_annotation(tag_levels = "A")
 
-ggsave(filename = paste0("output/Graphs/Regeneration_indicator_Bavaria.png"),
-       height = 13, width = 17, units = "cm", dpi = 900,
-       bg = "white",
-       device=grDevices::png)
-
 ggsave(filename = paste0("output/Graphs/Figure5.pdf"),
        height = 13.5, width = 18, units = "cm", dpi = 900,
        bg = "white",
-       device=grDevices::cairo_pdf)
+       device="pdf")
 
 
 # TABLES ------------------------------------------------------------------
