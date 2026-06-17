@@ -37,6 +37,46 @@ cult.col = colorRampPalette(c("grey90", "#FCFD8F","#F3CE65","#EB9F3C","#9A3F07")
 div = colorRampPalette(c("grey90","#FFEC9DFF", "#F2AF4AFF", "#EB7F54FF", "#9A3F07"))
 
 
+# GERMANY no hist ---------------------------------------------------------
+
+# SPECIES RICHNESS ---------------------------------------------------------------
+# species richness rule BaySF Waldbauhandbuch Baumartenwahl 2020
+# 4 species per hectare for species with minimum abundances of >=5 %
+# 3 species Lindner et al 2020 (policy brief)
+sprich.df <- readRDS("output/Graphs/Speciesrichness.rds")
+sprich.rast <- rast("output/Graphs/Speciesrichness.tif")
+
+
+## Plot --------------------------------------------------------------------
+
+### Class -------------------------------------------------------------------
+
+p.div <- 
+  ggplot() +
+  theme_void() +
+  geom_spatraster(data = sprich.rast$class) +
+  scale_fill_manual(      
+    "Species richness",
+    na.translate = FALSE,
+    labels = c("1-2", "3-4", "\u22655", ""),
+    na.value = "transparent",
+    values = c("#9A3F07","#F2AF4AFF","grey90"),
+    guide = guide_legend(reverse = TRUE)) +
+  theme(legend.title = element_text(size = 8),
+        legend.text = element_text(size = 7)) +
+  geom_spatvector(data = germany, fill = "transparent", colour = "black", linewidth = 0.1)+ 
+  theme(text = element_text(family = "inter"))
+
+p.div
+
+ggsave(filename = "output/Graphs/Figure4_nohist.pdf",
+       height = 8, width = 10, units = "cm", dpi = 900,
+       bg = "white",
+       device="pdf")
+
+
+# OBERFRANKEN -------------------------------------------------------------
+
 # REGENERATION DISTRIBUTION ------------------------------------------
 # Visualising predicted species distribution Maps
 
@@ -146,6 +186,33 @@ sap.risk.df <-
 
 sap.risk.df.nona <- sap.risk.df %>% 
   drop_na()
+
+
+## Plot --------------------------------------------------------------
+# Map
+b.risk <-
+  ggplot()+
+  theme_void()+
+  geom_spatvector(data = ofr, fill = "white", colour = "black", linewidth = 0.1) +
+  geom_spatraster(data = sap.risk) +
+  scale_fill_gradientn("Proportion of\nregeneration of\nlow future suitability\n[%]",
+                       colours = cult.col(50),
+                       na.value = NA,
+                       limits = c(0, 100)) +
+  geom_spatvector(data = ofr, fill = "transparent", colour = "black", linewidth = 0.1) +
+  theme(text = element_text(family = "inter")) +
+  theme(legend.title = element_text(size = 8),
+        legend.text = element_text(size = 7),
+        panel.background = element_rect(fill = "transparent", colour = NA),
+        plot.background = element_rect(fill = "transparent", colour = NA),
+        legend.background = element_rect(fill = "transparent", colour = NA),
+        legend.box.background = element_rect(fill = "transparent", colour = NA))
+
+ggsave(b.risk,
+       filename = "output/Graphs/Risk_ofr.pdf",
+       height = 8, width = 14, units = "cm", dpi = 900,
+       bg = "transparent",
+       device="pdf")
 
 
 
